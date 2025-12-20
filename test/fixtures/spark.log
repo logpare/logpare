@@ -1,0 +1,64 @@
+17/06/09 20:10:40 INFO SparkContext: Running Spark version 2.1.1
+17/06/09 20:10:41 INFO SparkContext: Submitted application: PythonPi
+17/06/09 20:10:41 INFO SecurityManager: Changing view acls to: root
+17/06/09 20:10:41 INFO SecurityManager: Changing modify acls to: root
+17/06/09 20:10:41 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(root); users with modify permissions: Set(root)
+17/06/09 20:10:42 INFO Utils: Successfully started service 'sparkDriver' on port 35625.
+17/06/09 20:10:42 INFO SparkEnv: Registering MapOutputTracker
+17/06/09 20:10:42 INFO SparkEnv: Registering BlockManagerMaster
+17/06/09 20:10:42 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+17/06/09 20:10:42 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+17/06/09 20:10:42 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-5d1b1e0a-5e9a-4d3a-9e5b-1e2b3c4d5e6f
+17/06/09 20:10:42 INFO MemoryStore: MemoryStore started with capacity 366.3 MB
+17/06/09 20:10:42 INFO SparkEnv: Registering OutputCommitCoordinator
+17/06/09 20:10:43 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+17/06/09 20:10:43 INFO SparkUI: Bound SparkUI to 0.0.0.0, and started at http://192.168.1.100:4040
+17/06/09 20:10:43 INFO Executor: Starting executor ID driver on host localhost
+17/06/09 20:10:43 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 42765.
+17/06/09 20:10:43 INFO NettyBlockTransferService: Server created on 192.168.1.100:42765
+17/06/09 20:10:43 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+17/06/09 20:10:43 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, 192.168.1.100, 42765, None)
+17/06/09 20:10:43 INFO BlockManagerMasterEndpoint: Registering block manager 192.168.1.100:42765 with 366.3 MB RAM, BlockManagerId(driver, 192.168.1.100, 42765, None)
+17/06/09 20:10:43 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, 192.168.1.100, 42765, None)
+17/06/09 20:10:43 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, 192.168.1.100, 42765, None)
+17/06/09 20:10:44 INFO SparkContext: Starting job: reduce at /home/user/pi.py:43
+17/06/09 20:10:44 INFO DAGScheduler: Got job 0 (reduce at /home/user/pi.py:43) with 4 output partitions
+17/06/09 20:10:44 INFO DAGScheduler: Final stage: ResultStage 0 (reduce at /home/user/pi.py:43)
+17/06/09 20:10:44 INFO DAGScheduler: Parents of final stage: List()
+17/06/09 20:10:44 INFO DAGScheduler: Missing parents: List()
+17/06/09 20:10:44 INFO DAGScheduler: Submitting ResultStage 0 (PythonRDD[1] at reduce at /home/user/pi.py:43), which has no missing parents
+17/06/09 20:10:44 INFO MemoryStore: Block broadcast_0 stored as values in memory (estimated size 4.0 KB, free 366.3 MB)
+17/06/09 20:10:44 INFO MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 2.6 KB, free 366.3 MB)
+17/06/09 20:10:44 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on 192.168.1.100:42765 (size: 2.6 KB, free: 366.3 MB)
+17/06/09 20:10:44 INFO SparkContext: Created broadcast 0 from broadcast at DAGScheduler.scala:1006
+17/06/09 20:10:44 INFO DAGScheduler: Submitting 4 missing tasks from ResultStage 0 (PythonRDD[1] at reduce at /home/user/pi.py:43)
+17/06/09 20:10:44 INFO TaskSchedulerImpl: Adding task set 0.0 with 4 tasks
+17/06/09 20:10:44 INFO TaskSetManager: Starting task 0.0 in stage 0.0 (TID 0, localhost, executor driver, partition 0, PROCESS_LOCAL, 5878 bytes)
+17/06/09 20:10:44 INFO TaskSetManager: Starting task 1.0 in stage 0.0 (TID 1, localhost, executor driver, partition 1, PROCESS_LOCAL, 5878 bytes)
+17/06/09 20:10:44 INFO TaskSetManager: Starting task 2.0 in stage 0.0 (TID 2, localhost, executor driver, partition 2, PROCESS_LOCAL, 5878 bytes)
+17/06/09 20:10:44 INFO TaskSetManager: Starting task 3.0 in stage 0.0 (TID 3, localhost, executor driver, partition 3, PROCESS_LOCAL, 5878 bytes)
+17/06/09 20:10:44 INFO Executor: Running task 0.0 in stage 0.0 (TID 0)
+17/06/09 20:10:44 INFO Executor: Running task 1.0 in stage 0.0 (TID 1)
+17/06/09 20:10:44 INFO Executor: Running task 2.0 in stage 0.0 (TID 2)
+17/06/09 20:10:44 INFO Executor: Running task 3.0 in stage 0.0 (TID 3)
+17/06/09 20:10:45 INFO Executor: Finished task 2.0 in stage 0.0 (TID 2). 1109 bytes result sent to driver
+17/06/09 20:10:45 INFO Executor: Finished task 0.0 in stage 0.0 (TID 0). 1109 bytes result sent to driver
+17/06/09 20:10:45 INFO Executor: Finished task 3.0 in stage 0.0 (TID 3). 1109 bytes result sent to driver
+17/06/09 20:10:45 INFO Executor: Finished task 1.0 in stage 0.0 (TID 1). 1109 bytes result sent to driver
+17/06/09 20:10:45 INFO TaskSetManager: Finished task 2.0 in stage 0.0 (TID 2) in 152 ms on localhost (executor driver) (1/4)
+17/06/09 20:10:45 INFO TaskSetManager: Finished task 0.0 in stage 0.0 (TID 0) in 186 ms on localhost (executor driver) (2/4)
+17/06/09 20:10:45 INFO TaskSetManager: Finished task 3.0 in stage 0.0 (TID 3) in 148 ms on localhost (executor driver) (3/4)
+17/06/09 20:10:45 INFO TaskSetManager: Finished task 1.0 in stage 0.0 (TID 1) in 169 ms on localhost (executor driver) (4/4)
+17/06/09 20:10:45 INFO TaskSchedulerImpl: Removed TaskSet 0.0, whose tasks have all completed, from pool
+17/06/09 20:10:45 INFO DAGScheduler: ResultStage 0 (reduce at /home/user/pi.py:43) finished in 0.353 s
+17/06/09 20:10:45 INFO DAGScheduler: Job 0 finished: reduce at /home/user/pi.py:43, took 0.443322 s
+17/06/09 20:10:45 INFO SparkContext: Invoking stop() from shutdown hook
+17/06/09 20:10:45 INFO SparkUI: Stopped Spark web UI at http://192.168.1.100:4040
+17/06/09 20:10:45 INFO MapOutputTrackerMasterEndpoint: MapOutputTrackerMasterEndpoint stopped!
+17/06/09 20:10:45 INFO MemoryStore: MemoryStore cleared
+17/06/09 20:10:45 INFO BlockManager: BlockManager stopped
+17/06/09 20:10:45 INFO BlockManagerMaster: BlockManagerMaster stopped
+17/06/09 20:10:45 INFO OutputCommitCoordinator$OutputCommitCoordinatorEndpoint: OutputCommitCoordinator stopped!
+17/06/09 20:10:45 INFO SparkContext: Successfully stopped SparkContext
+17/06/09 20:10:45 INFO ShutdownHookManager: Shutdown hook called
+17/06/09 20:10:45 INFO ShutdownHookManager: Deleting directory /tmp/spark-a1b2c3d4-e5f6-7890-abcd-ef1234567890

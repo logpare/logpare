@@ -13,6 +13,7 @@ coverage/
 
 # Logs
 *.log
+!test/fixtures/*.log
 npm-debug.log*
 pnpm-debug.log*
 

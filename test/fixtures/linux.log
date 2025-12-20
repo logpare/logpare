@@ -1,0 +1,49 @@
+Jun  9 06:06:01 combo sshd(pam_unix)[19937]: authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=218.188.2.4
+Jun  9 06:06:02 combo sshd(pam_unix)[19937]: authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=218.188.2.4  user=root
+Jun  9 06:06:20 combo sshd(pam_unix)[19939]: authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=218.188.2.4
+Jun  9 06:06:22 combo sshd(pam_unix)[19939]: authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=218.188.2.4  user=root
+Jun  9 06:06:40 combo sshd(pam_unix)[19941]: authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=218.188.2.4
+Jun  9 06:07:02 combo sshd(pam_unix)[19943]: authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=218.188.2.4
+Jun  9 06:07:22 combo sshd(pam_unix)[19945]: authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=218.188.2.4
+Jun  9 06:07:42 combo sshd(pam_unix)[19947]: authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=218.188.2.4
+Jun  9 06:08:02 combo sshd(pam_unix)[19949]: authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=218.188.2.4
+Jun  9 06:08:22 combo sshd(pam_unix)[19951]: authentication failure; logname= uid=0 euid=0 tty=NODEVssh ruser= rhost=218.188.2.4
+Jun  9 06:17:01 combo crond(pam_unix)[20030]: session opened for user root by (uid=0)
+Jun  9 06:17:01 combo crond(pam_unix)[20030]: session closed for user root
+Jun  9 06:18:01 combo crond(pam_unix)[20051]: session opened for user root by (uid=0)
+Jun  9 06:18:01 combo crond(pam_unix)[20051]: session closed for user root
+Jun  9 06:19:01 combo crond(pam_unix)[20072]: session opened for user root by (uid=0)
+Jun  9 06:19:01 combo crond(pam_unix)[20072]: session closed for user root
+Jun  9 06:20:01 combo crond(pam_unix)[20093]: session opened for user root by (uid=0)
+Jun  9 06:20:02 combo crond(pam_unix)[20093]: session closed for user root
+Jun  9 06:21:01 combo crond(pam_unix)[20114]: session opened for user root by (uid=0)
+Jun  9 06:21:01 combo crond(pam_unix)[20114]: session closed for user root
+Jun  9 06:22:01 combo crond(pam_unix)[20135]: session opened for user root by (uid=0)
+Jun  9 06:22:01 combo crond(pam_unix)[20135]: session closed for user root
+Jun  9 06:23:01 combo crond(pam_unix)[20156]: session opened for user root by (uid=0)
+Jun  9 06:23:01 combo crond(pam_unix)[20156]: session closed for user root
+Jun  9 06:24:01 combo crond(pam_unix)[20177]: session opened for user root by (uid=0)
+Jun  9 06:24:01 combo crond(pam_unix)[20177]: session closed for user root
+Jun  9 06:25:01 combo crond(pam_unix)[20198]: session opened for user root by (uid=0)
+Jun  9 06:25:01 combo crond(pam_unix)[20198]: session closed for user root
+Jun  9 06:26:01 combo crond(pam_unix)[20219]: session opened for user root by (uid=0)
+Jun  9 06:26:01 combo crond(pam_unix)[20219]: session closed for user root
+Jun  9 06:27:01 combo kernel: end_request: I/O error, dev fd0, sector 0
+Jun  9 06:27:01 combo kernel: floppy0: floppy timeout called
+Jun  9 06:27:01 combo crond(pam_unix)[20240]: session opened for user root by (uid=0)
+Jun  9 06:27:01 combo crond(pam_unix)[20240]: session closed for user root
+Jun  9 06:28:01 combo crond(pam_unix)[20275]: session opened for user root by (uid=0)
+Jun  9 06:28:01 combo crond(pam_unix)[20275]: session closed for user root
+Jun  9 06:29:01 combo crond(pam_unix)[20296]: session opened for user root by (uid=0)
+Jun  9 06:29:01 combo crond(pam_unix)[20296]: session closed for user root
+Jun  9 06:30:01 combo crond(pam_unix)[20317]: session opened for user root by (uid=0)
+Jun  9 06:30:01 combo crond(pam_unix)[20317]: session closed for user root
+Jun  9 07:01:05 combo logrotate: ALERT exited abnormally with [1]
+Jun  9 07:05:32 combo sshd(pam_unix)[20505]: session opened for user root by root(uid=0)
+Jun  9 07:10:15 combo sshd(pam_unix)[20505]: session closed for user root
+Jun  9 07:15:01 combo crond(pam_unix)[20651]: session opened for user root by (uid=0)
+Jun  9 07:15:01 combo crond(pam_unix)[20651]: session closed for user root
+Jun  9 07:16:01 combo crond(pam_unix)[20672]: session opened for user root by (uid=0)
+Jun  9 07:16:01 combo crond(pam_unix)[20672]: session closed for user root
+Jun  9 07:17:01 combo crond(pam_unix)[20693]: session opened for user root by (uid=0)
+Jun  9 07:17:01 combo crond(pam_unix)[20693]: session closed for user root
