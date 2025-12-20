@@ -46,7 +46,7 @@
     "url": "https://github.com/logpare/logpare"
   },
   "engines": {
-    "node": ">=18"
+    "node": "^20.0.0 || ^22.0.0 || >=24.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
