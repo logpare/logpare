@@ -1,0 +1,57 @@
+{
+  "name": "logpare",
+  "version": "0.2.0",
+  "description": "Semantic log compression that reduces repetitive events while preserving diagnostic information",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "logpare": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench": "vitest bench",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "keywords": [
+    "log",
+    "compression",
+    "parsing",
+    "drain",
+    "template",
+    "llm",
+    "mcp"
+  ],
+  "author": "Jeff Green <contact@hirejeffgreen.com>",
+  "homepage": "https://github.com/logpare/logpare",
+  "bugs": {
+    "url": "https://github.com/logpare/logpare/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/logpare/logpare"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  }
+}
