@@ -22,7 +22,6 @@ jobs:
         with:
           node-version: "22"
           cache: "pnpm"
-          registry-url: "https://registry.npmjs.org"
 
       - name: Verify tag matches package.json version
         run: |
@@ -37,12 +36,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Clear npm auth token (force OIDC)
-        run: |
-          unset NODE_AUTH_TOKEN
-          npm config delete //registry.npmjs.org/:_authToken || true
-
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ""
-        run: npm publish --provenance --access public
+        run: env -u NODE_AUTH_TOKEN -u NPM_CONFIG_USERCONFIG npm publish --provenance --access public
