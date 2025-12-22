@@ -23,6 +23,16 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
+      - name: Verify tag matches package.json version
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          pkg_version="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg_version" ]; then
+            echo "Tag version ($tag) does not match package.json ($pkg_version)." >&2
+            exit 1
+          fi
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
