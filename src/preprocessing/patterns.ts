@@ -1,8 +1,14 @@
 /**
  * Built-in regex patterns for common variable types.
  * These are applied in order during preprocessing to mask variables.
+ * Order matters: more specific patterns (like timestamps) must run before
+ * patterns that could match substrings (like port numbers).
  */
 export const DEFAULT_PATTERNS: Record<string, RegExp> = {
+  // Timestamps (most specific - must run before port to avoid fragmentation)
+  isoTimestamp: /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?/g,
+  unixTimestamp: /\b\d{10,13}\b/g,
+
   // Network addresses
   ipv4: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,
   ipv6: /\b[0-9a-fA-F:]{7,39}\b/g,
@@ -12,10 +18,6 @@ export const DEFAULT_PATTERNS: Record<string, RegExp> = {
   uuid: /\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b/g,
   hexId: /\b0x[0-9a-fA-F]+\b/g,
   blockId: /\bblk_-?\d+\b/g,
-
-  // Timestamps
-  isoTimestamp: /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?/g,
-  unixTimestamp: /\b\d{10,13}\b/g,
 
   // Paths and URLs
   filePath: /(?:\/[\w.-]+)+/g,

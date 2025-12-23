@@ -95,6 +95,16 @@ describe("DEFAULT_PATTERNS", () => {
     expect(result).not.toContain("550e8400");
     expect(result).not.toContain("150ms");
   });
+
+  it("should replace ISO timestamp as single wildcard with all patterns", () => {
+    // Regression test: port pattern was previously corrupting timestamps
+    // by matching `:45` in `01:23:45.678Z` before the timestamp pattern ran
+    const line = "2024-12-23T01:23:45.678Z Some log message";
+    const result = applyPatterns(line, DEFAULT_PATTERNS);
+
+    // The timestamp should be a single <*>, not fragmented
+    expect(result).toBe("<*> Some log message");
+  });
 });
 
 describe("defaultStrategy", () => {
