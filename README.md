@@ -34,11 +34,28 @@ Top templates by frequency:
 
 ## Installation
 
+### As a CLI tool (recommended for command-line usage)
+
+Install globally to use `logpare` directly from anywhere:
+
+```bash
+npm install -g logpare
+
+# Now works directly
+logpare server.log
+```
+
+### As a library
+
+Install locally in your project for programmatic usage:
+
 ```bash
 npm install logpare
 # or
 pnpm add logpare
 ```
+
+> **Note:** Local installs require `npx` to run the CLI: `npx logpare server.log`
 
 ## CLI Usage
 
@@ -63,6 +80,12 @@ logpare --output templates.txt error.log
 # Multiple files
 logpare access.log error.log server.log
 ```
+
+> **Using a local install?** Prefix commands with `npx`:
+> ```bash
+> npx logpare server.log
+> cat /var/log/syslog | npx logpare
+> ```
 
 ### CLI Options
 
