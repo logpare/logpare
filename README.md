@@ -190,6 +190,7 @@ const strategy = defineStrategy({
 LogPare automatically masks common variable types:
 
 - IPv4/IPv6 addresses
+- Port numbers (e.g., `:443`, `:8080`)
 - UUIDs
 - Timestamps (ISO, Unix)
 - File paths and URLs
