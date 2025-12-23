@@ -22,6 +22,8 @@ jobs:
         with:
           node-version: "22"
           cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+          token: ""
 
       - name: Verify tag matches package.json version
         run: |
@@ -36,5 +38,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify OIDC environment is available
+        run: |
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "OIDC environment variables are missing. Check id-token permissions." >&2
+            exit 1
+          fi
+
       - name: Publish to npm
-        run: env -u NODE_AUTH_TOKEN -u NPM_CONFIG_USERCONFIG npm publish --provenance --access public
+        run: env -u NODE_AUTH_TOKEN npm publish --provenance --access public
