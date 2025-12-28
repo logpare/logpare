@@ -157,17 +157,100 @@ const result = drain.getResult('detailed');
 ## Output Formats
 
 ### Summary (default)
-Compact overview with top templates and rare events.
+
+Compact overview with top templates and rare events:
+
+```
+=== Log Compression Summary ===
+Input: 10,847 lines → 23 templates (99.8% reduction)
+
+Top templates by frequency:
+1. [4,521x] INFO Connection from <*> established
+2. [3,892x] DEBUG Request <*> processed in <*>
+3. [1,203x] WARN Retry attempt <*> for <*>
+
+Rare events (≤5 occurrences):
+- [1x] FATAL Database connection lost
+- [2x] ERROR Out of memory exception in <*>
+```
 
 ### Detailed
-Full template list with sample variable values.
+
+Full template list with all diagnostic metadata:
+
+```
+Template #1: INFO Connection from <*> established
+  Occurrences: 4,521
+  Severity: info
+  First seen: line 1
+  Last seen: line 10,234
+  Sample values: [["192.168.1.1"], ["10.0.0.55"], ["172.16.0.1"]]
+  URLs: api.example.com, cdn.example.com
+  Status codes: 200, 201
+  Correlation IDs: req-abc123, trace-xyz789
+  Durations: 45ms, 120ms, 2.5s
+```
 
 ### JSON
-Machine-readable format for programmatic use.
+
+Machine-readable format with version field and complete metadata:
+
+```json
+{
+  "version": "1.1",
+  "stats": {
+    "inputLines": 10847,
+    "uniqueTemplates": 23,
+    "compressionRatio": 0.998,
+    "estimatedTokenReduction": 0.95,
+    "processingTimeMs": 234
+  },
+  "templates": [{
+    "id": "abc123",
+    "pattern": "INFO Connection from <*> established",
+    "occurrences": 4521,
+    "severity": "info",
+    "isStackFrame": false,
+    "firstSeen": 1,
+    "lastSeen": 10234,
+    "sampleVariables": [["192.168.1.1"], ["10.0.0.55"]],
+    "urlSamples": ["api.example.com"],
+    "fullUrlSamples": ["https://api.example.com/v1/users"],
+    "statusCodeSamples": [200, 201],
+    "correlationIdSamples": ["req-abc123"],
+    "durationSamples": ["45ms", "120ms"]
+  }]
+}
+```
 
 ```typescript
 compress(logs, { format: 'json' });
 ```
+
+## Diagnostic Metadata
+
+LogPare automatically extracts diagnostic information from matching log lines:
+
+| Metadata | Description | Supported Formats |
+|----------|-------------|-------------------|
+| **URLs** | Hostnames and full URLs | `https://...`, `http://...` |
+| **Status codes** | HTTP status codes | `status 404`, `HTTP/1.1 500`, `code=200` |
+| **Correlation IDs** | Request/trace identifiers | `trace-id: xxx`, `request-id: xxx`, UUIDs |
+| **Durations** | Timing values | `45ms`, `1.5s`, `200µs`, `2min`, `1h` |
+
+This metadata is preserved in templates and available in detailed/JSON output formats.
+
+## Severity Detection
+
+Each template is automatically tagged with a severity level:
+
+| Severity | Detected Patterns |
+|----------|------------------|
+| `error` | ERROR, FATAL, Exception, Failed, TypeError, ReferenceError, panic |
+| `warning` | WARN, Warning, Deprecated, [Violation] |
+| `info` | Default for other logs |
+
+Stack traces are also automatically detected (V8/Node.js, Firefox, Chrome DevTools formats) and marked with `isStackFrame: true`.
 
 ## API Reference
 
@@ -195,6 +278,33 @@ Create a Drain instance for incremental processing.
 - `options.maxChildren`: `number` - Max children per node (default: `100`)
 - `options.maxClusters`: `number` - Max total templates (default: `1000`)
 - `options.preprocessing`: `ParsingStrategy` - Custom preprocessing
+- `options.onProgress`: `ProgressCallback` - Progress reporting callback
+
+#### Progress Reporting
+
+Track progress during long-running operations:
+
+```typescript
+import { createDrain } from 'logpare';
+
+const drain = createDrain({
+  onProgress: (event) => {
+    console.log(`${event.currentPhase}: ${event.processedLines} lines`);
+    if (event.percentComplete !== undefined) {
+      console.log(`Progress: ${event.percentComplete.toFixed(1)}%`);
+    }
+  }
+});
+
+drain.addLogLines(logs);
+const result = drain.getResult();
+```
+
+The callback receives `ProgressEvent` with:
+- `processedLines`: Lines processed so far
+- `totalLines`: Total lines (if known)
+- `currentPhase`: `'parsing'` | `'clustering'` | `'finalizing'`
+- `percentComplete`: 0-100 (only if `totalLines` known)
 
 ### `defineStrategy(overrides)`
 
@@ -220,6 +330,11 @@ LogPare automatically masks common variable types:
 - Hex IDs
 - Block IDs (HDFS)
 - Numbers with units (e.g., `250ms`, `1024KB`)
+
+**Automatic detection features:**
+- **Severity tagging** — Templates are tagged as `error`, `warning`, or `info`
+- **Stack frame detection** — Identifies stack traces (V8, Firefox, Chrome formats)
+- **Diagnostic extraction** — Captures URLs, HTTP status codes, correlation IDs, and durations
 
 ## Performance
 
