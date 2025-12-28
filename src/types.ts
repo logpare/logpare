@@ -14,6 +14,11 @@ export interface ParsingStrategy {
 }
 
 /**
+ * Severity level of a log message.
+ */
+export type Severity = 'error' | 'warning' | 'info';
+
+/**
  * A discovered log template.
  */
 export interface Template {
@@ -34,6 +39,27 @@ export interface Template {
 
   /** Line index of most recent occurrence */
   lastSeen: number;
+
+  /** Detected severity level (error, warning, info) */
+  severity: Severity;
+
+  /** Sample URLs extracted from matching lines (hostnames only for brevity) */
+  urlSamples: string[];
+
+  /** Full URLs extracted from matching lines (complete paths for diagnostics) */
+  fullUrlSamples: string[];
+
+  /** HTTP status codes extracted from matching lines */
+  statusCodeSamples: number[];
+
+  /** Correlation/trace IDs extracted from matching lines */
+  correlationIdSamples: string[];
+
+  /** Duration/timing values extracted from matching lines (e.g., "80ms", "1.5s") */
+  durationSamples: string[];
+
+  /** Whether this template represents a stack trace frame */
+  isStackFrame: boolean;
 }
 
 /**
@@ -56,11 +82,36 @@ export interface CompressionResult {
 
     /** Estimated token reduction percentage */
     estimatedTokenReduction: number;
+
+    /** Processing time in milliseconds (optional) */
+    processingTimeMs?: number;
   };
 
   /** Formatted output string */
   formatted: string;
 }
+
+/**
+ * Progress event emitted during log processing.
+ */
+export interface ProgressEvent {
+  /** Number of lines processed so far */
+  processedLines: number;
+
+  /** Total lines to process (if known upfront) */
+  totalLines?: number;
+
+  /** Current processing phase */
+  currentPhase: 'parsing' | 'clustering' | 'finalizing';
+
+  /** Percentage complete (0-100, only if totalLines known) */
+  percentComplete?: number;
+}
+
+/**
+ * Callback function for progress reporting.
+ */
+export type ProgressCallback = (event: ProgressEvent) => void;
 
 /**
  * Configuration options for Drain algorithm.
@@ -83,6 +134,9 @@ export interface DrainOptions {
 
   /** Custom preprocessing strategy */
   preprocessing?: ParsingStrategy;
+
+  /** Progress callback for long-running operations */
+  onProgress?: ProgressCallback;
 }
 
 /**

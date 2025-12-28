@@ -1,4 +1,4 @@
-import type { DrainOptions, ParsingStrategy, Template, OutputFormat, CompressionResult } from '../types.js';
+import type { DrainOptions, ParsingStrategy, Template, OutputFormat, CompressionResult, ProgressCallback } from '../types.js';
 import { defaultStrategy } from '../preprocessing/default.js';
 import { WILDCARD } from '../preprocessing/patterns.js';
 import { DrainNode } from './node.js';
@@ -42,6 +42,7 @@ export class Drain {
   private readonly maxChildren: number;
   private readonly maxClusters: number;
   private readonly maxSamples: number;
+  private readonly onProgress: ProgressCallback | undefined;
   private lineCount: number;
   private nextClusterId: number;
 
@@ -53,6 +54,7 @@ export class Drain {
     this.maxChildren = options.maxChildren ?? DEFAULTS.maxChildren;
     this.maxClusters = options.maxClusters ?? DEFAULTS.maxClusters;
     this.maxSamples = options.maxSamples ?? DEFAULTS.maxSamples;
+    this.onProgress = options.onProgress;
     this.lineCount = 0;
     this.nextClusterId = 1;
   }
@@ -81,8 +83,8 @@ export class Drain {
     const matchedCluster = this.treeSearch(tokens);
 
     if (matchedCluster !== null) {
-      // Update existing cluster
-      matchedCluster.update(tokens, lineIndex);
+      // Update existing cluster, passing original line for URL extraction
+      matchedCluster.update(tokens, lineIndex, trimmed);
       matchedCluster.mergeTokens(tokens);
       return matchedCluster;
     }
@@ -92,15 +94,40 @@ export class Drain {
       return null;
     }
 
-    return this.createCluster(tokens, lineIndex);
+    return this.createCluster(tokens, lineIndex, trimmed);
   }
 
   /**
-   * Process multiple log lines.
+   * Process multiple log lines with optional progress reporting.
    */
   addLogLines(lines: string[]): void {
-    for (const line of lines) {
-      this.addLogLine(line);
+    const total = lines.length;
+
+    // Calculate report interval (emit at most 100 progress events)
+    const reportInterval = Math.max(1, Math.floor(total / 100));
+
+    for (let i = 0; i < total; i++) {
+      this.addLogLine(lines[i] as string);
+
+      // Emit progress at intervals
+      if (this.onProgress && i % reportInterval === 0) {
+        this.onProgress({
+          processedLines: i + 1,
+          totalLines: total,
+          currentPhase: 'clustering',
+          percentComplete: Math.round(((i + 1) / total) * 100),
+        });
+      }
+    }
+
+    // Emit final progress event
+    if (this.onProgress && total > 0) {
+      this.onProgress({
+        processedLines: total,
+        totalLines: total,
+        currentPhase: 'finalizing',
+        percentComplete: 100,
+      });
     }
   }
 
@@ -184,9 +211,9 @@ export class Drain {
   /**
    * Create a new cluster and add it to the tree.
    */
-  private createCluster(tokens: string[], lineIndex: number): LogCluster {
+  private createCluster(tokens: string[], lineIndex: number, originalLine: string = ''): LogCluster {
     const clusterId = `t${String(this.nextClusterId++).padStart(3, '0')}`;
-    const cluster = new LogCluster(clusterId, tokens, lineIndex, this.maxSamples);
+    const cluster = new LogCluster(clusterId, tokens, lineIndex, this.maxSamples, originalLine);
 
     // Navigate/create path in tree
     const tokenCount = tokens.length;
@@ -288,6 +315,13 @@ export class Drain {
       sampleVariables: cluster.sampleVariables,
       firstSeen: cluster.firstSeen,
       lastSeen: cluster.lastSeen,
+      severity: cluster.severity,
+      urlSamples: cluster.urlSamples,
+      fullUrlSamples: cluster.fullUrlSamples,
+      statusCodeSamples: cluster.statusCodeSamples,
+      correlationIdSamples: cluster.correlationIdSamples,
+      durationSamples: cluster.durationSamples,
+      isStackFrame: cluster.isStackFrame,
     }));
   }
 

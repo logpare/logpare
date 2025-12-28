@@ -228,7 +228,7 @@ describe('Drain output formats', () => {
     const result = drain.getResult('json');
     const parsed = JSON.parse(result.formatted);
 
-    expect(parsed.version).toBe('1.0');
+    expect(parsed.version).toBe('1.1');
     expect(parsed.stats).toBeDefined();
     expect(parsed.templates).toBeInstanceOf(Array);
     expect(parsed.templates[0].occurrences).toBe(2);

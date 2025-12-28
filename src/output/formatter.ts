@@ -81,8 +81,28 @@ export function formatDetailed(
   for (const template of templates) {
     lines.push(`=== Template ${template.id} (${template.occurrences.toLocaleString()} occurrences) ===`);
     lines.push(`Pattern: ${template.pattern}`);
+    lines.push(`Severity: ${template.severity}${template.isStackFrame ? ' (stack frame)' : ''}`);
     lines.push(`First seen: line ${template.firstSeen + 1}`);
     lines.push(`Last seen: line ${template.lastSeen + 1}`);
+
+    if (template.fullUrlSamples.length > 0) {
+      lines.push('URLs:');
+      for (const url of template.fullUrlSamples) {
+        lines.push(`  - ${url}`);
+      }
+    }
+
+    if (template.statusCodeSamples.length > 0) {
+      lines.push(`Status codes: ${template.statusCodeSamples.join(', ')}`);
+    }
+
+    if (template.correlationIdSamples.length > 0) {
+      lines.push(`Correlation IDs: ${template.correlationIdSamples.join(', ')}`);
+    }
+
+    if (template.durationSamples.length > 0) {
+      lines.push(`Durations: ${template.durationSamples.join(', ')}`);
+    }
 
     if (template.sampleVariables.length > 0) {
       lines.push('Sample variables:');
@@ -107,7 +127,7 @@ export function formatJson(
   stats: CompressionResult['stats']
 ): string {
   const output = {
-    version: '1.0',
+    version: '1.1',
     stats: {
       inputLines: stats.inputLines,
       uniqueTemplates: stats.uniqueTemplates,
@@ -118,7 +138,14 @@ export function formatJson(
       id: t.id,
       pattern: t.pattern,
       occurrences: t.occurrences,
+      severity: t.severity,
+      isStackFrame: t.isStackFrame,
       samples: t.sampleVariables,
+      urlSamples: t.urlSamples,
+      fullUrlSamples: t.fullUrlSamples,
+      statusCodeSamples: t.statusCodeSamples,
+      correlationIdSamples: t.correlationIdSamples,
+      durationSamples: t.durationSamples,
       firstSeen: t.firstSeen,
       lastSeen: t.lastSeen,
     })),

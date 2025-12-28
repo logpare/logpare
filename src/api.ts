@@ -32,10 +32,22 @@ export function compress(
 ): CompressionResult {
   const { format = 'summary', maxTemplates = 50, drain: drainOptions } = options;
 
+  const startTime = performance.now();
+
   const drain = createDrain(drainOptions);
   drain.addLogLines(lines);
 
-  return drain.getResult(format, maxTemplates);
+  const result = drain.getResult(format, maxTemplates);
+  const processingTimeMs = Math.round(performance.now() - startTime);
+
+  // Add processing time to stats
+  return {
+    ...result,
+    stats: {
+      ...result.stats,
+      processingTimeMs,
+    },
+  };
 }
 
 /**
