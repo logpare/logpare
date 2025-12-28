@@ -1,6 +1,6 @@
 {
   "name": "logpare",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Semantic log compression that reduces repetitive events while preserving diagnostic information",
   "type": "module",
   "exports": {
