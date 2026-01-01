@@ -208,3 +208,12 @@ Extraction patterns support common formats:
 - `summary` - Compact template list with frequencies, plus rare events section (≤5 occurrences)
 - `detailed` - Full templates with sample variables, severity, line numbers, and all diagnostic metadata
 - `json` - Machine-readable JSON with version field (`"version": "1.1"`)
+
+## Version Bump Checklist
+
+When bumping the version, update these files:
+
+1. **package.json** - Update `"version"` field (source of truth)
+2. **CHANGELOG.md** - Add new version section with date and changes
+
+The CLI version is automatically injected at build time from package.json via tsup's `define` option - no manual update needed.
