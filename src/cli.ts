@@ -1,14 +1,12 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
 import { compressText } from "./api.js";
 import type { CompressOptions, OutputFormat } from "./types.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const pkg = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
-const VERSION = pkg.version as string;
+declare const __LOGPARE_VERSION__: string;
+const VERSION =
+  typeof __LOGPARE_VERSION__ !== "undefined" ? __LOGPARE_VERSION__ : "0.0.0";
 
 const HELP = `
 logpare - Semantic log compression for LLM context windows
