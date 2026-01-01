@@ -10,6 +10,10 @@ export {
   detectSeverity,
   isStackFrame,
   extractUrls,
+  extractFullUrls,
+  extractStatusCodes,
+  extractCorrelationIds,
+  extractDurations,
 } from './preprocessing/index.js';
 
 // Types

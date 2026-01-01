@@ -7,6 +7,9 @@ export {
   detectSeverity,
   isStackFrame,
   extractUrls,
+  extractFullUrls,
+  extractStatusCodes,
+  extractCorrelationIds,
   extractDurations,
 } from './patterns.js';
 export { defaultStrategy, defineStrategy } from './default.js';
