@@ -106,6 +106,16 @@ export class Drain {
     // Calculate report interval (emit at most 100 progress events)
     const reportInterval = Math.max(1, Math.floor(total / 100));
 
+    // Emit initial parsing phase
+    if (this.onProgress && total > 0) {
+      this.onProgress({
+        processedLines: 0,
+        totalLines: total,
+        currentPhase: 'parsing',
+        percentComplete: 0,
+      });
+    }
+
     for (let i = 0; i < total; i++) {
       this.addLogLine(lines[i] as string);
 
