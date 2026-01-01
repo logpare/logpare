@@ -24,6 +24,41 @@ describe("DEFAULT_PATTERNS", () => {
     expect(result).toBe("src: <*> dest: <*>");
   });
 
+  it("should match IPv6 loopback ::1", () => {
+    const line = "Connection from ::1 established";
+    const result = applyPatterns(line, { ipv6: DEFAULT_PATTERNS.ipv6 });
+
+    expect(result).toBe("Connection from <*> established");
+  });
+
+  it("should match IPv6 empty ::", () => {
+    const line = "Listening on ::";
+    const result = applyPatterns(line, { ipv6: DEFAULT_PATTERNS.ipv6 });
+
+    expect(result).toBe("Listening on <*>");
+  });
+
+  it("should match full IPv6 addresses", () => {
+    const line = "From 2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+    const result = applyPatterns(line, { ipv6: DEFAULT_PATTERNS.ipv6 });
+
+    expect(result).toBe("From <*>");
+  });
+
+  it("should match compressed IPv6 addresses", () => {
+    const line = "From 2001:db8::1 and fe80::1";
+    const result = applyPatterns(line, { ipv6: DEFAULT_PATTERNS.ipv6 });
+
+    expect(result).toBe("From <*> and <*>");
+  });
+
+  it("should not match non-IPv6 strings", () => {
+    const line = "Error code: ABC";
+    const result = applyPatterns(line, { ipv6: DEFAULT_PATTERNS.ipv6 });
+
+    expect(result).toBe("Error code: ABC");
+  });
+
   it("should match UUIDs", () => {
     const line = "Request 550e8400-e29b-41d4-a716-446655440000 started";
     const result = applyPatterns(line, { uuid: DEFAULT_PATTERNS.uuid });

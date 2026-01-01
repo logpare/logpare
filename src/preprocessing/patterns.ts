@@ -169,17 +169,22 @@ export function extractDurations(line: string): string[] {
  * patterns that could match substrings (like port numbers).
  */
 export const DEFAULT_PATTERNS: Record<string, RegExp> = {
-  // Timestamps (most specific - must run before port to avoid fragmentation)
+  // Timestamps (must run before port to avoid fragmentation)
   isoTimestamp: /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?/g,
+
+  // UUID must run before unixTimestamp to prevent partial matching of UUID segments
+  uuid: /\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b/g,
+
   unixTimestamp: /\b\d{10,13}\b/g,
 
   // Network addresses
   ipv4: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,
-  ipv6: /\b[0-9a-fA-F:]{7,39}\b/g,
+  // IPv6: matches full, compressed (::1, ::), and partial forms
+  // Order matters: longer matches must come before shorter ones in alternation
+  ipv6: /(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?::[0-9a-fA-F]{1,4}){1,7}|(?:[0-9a-fA-F]{1,4}:){1,7}:|::)/g,
   port: /:\d{2,5}\b/g,
 
   // Identifiers
-  uuid: /\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b/g,
   hexId: /\b0x[0-9a-fA-F]+\b/g,
   blockId: /\bblk_-?\d+\b/g,
 
