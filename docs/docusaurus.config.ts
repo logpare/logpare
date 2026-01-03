@@ -32,7 +32,13 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           editUrl: 'https://github.com/logpare/logpare/tree/main/docs/',
         },
-        blog: false,
+        blog: {
+          showReadingTime: true,
+          editUrl: 'https://github.com/logpare/logpare/tree/main/docs/',
+          blogTitle: 'Blog',
+          blogDescription: 'Updates and announcements from the logpare team',
+          postsPerPage: 10,
+        },
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -58,6 +64,11 @@ const config: Config = {
         {
           to: '/playground',
           label: 'Playground',
+          position: 'left',
+        },
+        {
+          to: '/blog',
+          label: 'Blog',
           position: 'left',
         },
         {
