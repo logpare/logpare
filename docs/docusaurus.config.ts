@@ -7,7 +7,10 @@ const config: Config = {
   tagline: 'Semantic log compression for LLM context windows',
   favicon: 'img/favicon.ico',
 
-  url: 'https://logpare.github.io',
+  // Vercel will set VERCEL_URL, or use custom domain
+  url: process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'https://logpare.dev',
   baseUrl: '/',
 
   organizationName: 'logpare',
@@ -51,6 +54,11 @@ const config: Config = {
           sidebarId: 'docsSidebar',
           position: 'left',
           label: 'Docs',
+        },
+        {
+          to: '/playground',
+          label: 'Playground',
+          position: 'left',
         },
         {
           href: 'https://github.com/logpare/logpare',

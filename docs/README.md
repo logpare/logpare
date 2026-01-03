@@ -265,6 +265,35 @@ The components use TypeScript. If you see type errors:
 pnpm typecheck  # Check for type issues
 ```
 
+## Deployment
+
+### Vercel (Recommended)
+
+1. **Connect GitHub repo** at [vercel.com/new](https://vercel.com/new)
+2. **Set Root Directory**: `docs`
+3. **Framework**: Auto-detected as Docusaurus
+4. Click **Deploy**
+
+Or via CLI:
+```bash
+cd docs
+npx vercel
+```
+
+### Manual Build
+
+```bash
+pnpm build
+# Output in build/ directory
+```
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `ALGOLIA_APP_ID` | Algolia DocSearch App ID |
+| `ALGOLIA_API_KEY` | Algolia Search API Key |
+
 ## License
 
 MIT - Same as logpare
