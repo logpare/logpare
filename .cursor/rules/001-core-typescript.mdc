@@ -1,0 +1,48 @@
+---
+alwaysApply: true
+---
+
+# TypeScript Strict Mode Requirements
+
+## Type Safety Standards
+
+This project uses strict TypeScript with these critical settings:
+- `noUncheckedIndexedAccess: true` - Array/Map access returns `T | undefined`
+- `exactOptionalPropertyTypes: true` - No explicit `undefined` assignment
+- `noUnusedLocals/noUnusedParameters: true` - No dead code
+
+## Patterns
+
+**Array/Map access - always check undefined:**
+```typescript
+// ✅ GOOD
+const node = children.get(token);
+if (!node) return null;
+
+// ❌ BAD
+const node = children.get(token)!;
+```
+
+**Optional properties - omit, don't assign undefined:**
+```typescript
+// ✅ GOOD
+const opts: DrainOptions = { depth: 4 };
+
+// ❌ BAD
+const opts: DrainOptions = { depth: 4, simThreshold: undefined };
+```
+
+**Explicit return types on exports:**
+```typescript
+// ✅ GOOD
+export function compress(lines: string[]): CompressionResult { }
+
+// ❌ BAD - inferred return
+export function compress(lines: string[]) { }
+```
+
+## Exports
+
+- Use named exports, not default exports
+- Export types alongside implementations
+- Keep `index.ts` as re-export hub only

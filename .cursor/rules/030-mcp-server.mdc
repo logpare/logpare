@@ -1,0 +1,58 @@
+---
+description: MCP server development patterns for logpare integration
+globs: packages/mcp/**/*.ts, mcp/**/*.ts
+---
+
+# MCP Server Development
+
+## Server Setup
+
+```typescript
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { compress } from 'logpare';
+
+const server = new Server({
+  name: 'logpare-mcp',
+  version: '0.1.0',
+}, {
+  capabilities: { tools: {} },
+});
+```
+
+## Tool Definitions
+
+```typescript
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: [{
+    name: 'compress_logs',
+    description: 'Compress logs using Drain algorithm',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        logs: { type: 'array', items: { type: 'string' } },
+        format: { enum: ['summary', 'detailed', 'json'] },
+      },
+      required: ['logs'],
+    },
+  }],
+}));
+```
+
+## Error Handling
+
+Return structured errors with `isError: true`:
+```typescript
+return {
+  content: [{ type: 'text', text: `Error: ${error.message}` }],
+  isError: true,
+};
+```
+
+## Transport
+
+Use stdio for Claude Desktop/Cursor:
+```typescript
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
