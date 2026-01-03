@@ -6,30 +6,30 @@ This document describes the Sandpack playground components created for the logpa
 
 ### React Components
 
-1. **`/home/user/logpare/docs/src/components/LogparePlayground.tsx`**
+1. **`src/components/LogparePlayground.tsx`**
    - Full-featured interactive playground
    - Parameter controls (depth, similarity threshold, format)
    - Real-time code editing
    - Live compression statistics
 
-2. **`/home/user/logpare/docs/src/components/CompressionDemo.tsx`**
+2. **`src/components/CompressionDemo.tsx`**
    - Simpler embeddable demo component
    - Pre-loaded datasets (basic, hdfs, spark, errors)
    - Format toggle (summary/detailed/json)
    - Smaller footprint for inline examples
 
-3. **`/home/user/logpare/docs/src/components/index.ts`**
+3. **`src/components/index.ts`**
    - Component exports and TypeScript types
 
 ### Documentation Pages
 
-4. **`/home/user/logpare/docs/playground.mdx`**
+4. **`playground.mdx`**
    - Full-page interactive playground
    - Multiple curated examples
    - Usage instructions
    - Parameter tuning guide
 
-5. **`/home/user/logpare/docs/docs/playground-examples.mdx`**
+5. **`docs/playground-examples.mdx`**
    - Embedded demo examples
    - Real-world use cases
    - Format comparison
@@ -37,11 +37,11 @@ This document describes the Sandpack playground components created for the logpa
 
 ### Configuration
 
-6. **`/home/user/logpare/docs/package.json`** (updated)
+6. **`package.json`** (updated)
    - Added `@codesandbox/sandpack-react` dependency
    - Added `logpare: "workspace:*"` for local package
 
-7. **`/home/user/logpare/docs/README.md`** (updated)
+7. **`README.md`** (updated)
    - Component documentation
    - Usage examples
    - Troubleshooting guide
@@ -53,7 +53,7 @@ This document describes the Sandpack playground components created for the logpa
 From the docs directory:
 
 ```bash
-cd /home/user/logpare/docs
+cd docs
 pnpm install
 ```
 
@@ -66,14 +66,14 @@ This will install:
 Sandpack will load logpare from npm, but for local development, build it first:
 
 ```bash
-cd /home/user/logpare
+# From repository root
 pnpm build
 ```
 
 ### 3. Start Development Server
 
 ```bash
-cd /home/user/logpare/docs
+cd docs
 pnpm start
 ```
 
@@ -261,7 +261,7 @@ Both components use these Sandpack settings:
 
 **Solution**: Build logpare first:
 ```bash
-cd /home/user/logpare
+# From repository root
 pnpm build
 ```
 
@@ -269,7 +269,7 @@ pnpm build
 
 **Solution**: Install dependencies:
 ```bash
-cd /home/user/logpare/docs
+cd docs
 pnpm install
 ```
 

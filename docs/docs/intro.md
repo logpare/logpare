@@ -16,7 +16,7 @@ logpare identifies log templates and outputs a compressed format showing each te
 
 ### Before logpare
 
-```
+```text
 INFO Connection from 192.168.1.1 established
 INFO Connection from 192.168.1.2 established
 INFO Connection from 10.0.0.55 established
@@ -25,7 +25,7 @@ INFO Connection from 10.0.0.55 established
 
 ### After logpare
 
-```
+```text
 === Log Compression Summary ===
 Input: 10,847 lines → 23 templates (99.8% reduction)
 

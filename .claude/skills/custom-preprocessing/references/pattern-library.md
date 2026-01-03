@@ -2,6 +2,19 @@
 
 Comprehensive regex patterns for masking domain-specific identifiers in logs.
 
+## Security Notes
+
+**CRITICAL**: Never log sensitive data in the first place!
+
+- **Credit cards**: Should NEVER appear in logs (PCI compliance)
+- **Passwords**: Should NEVER appear in logs
+- **API secrets**: Should NEVER appear in logs (use secret managers)
+- **Personal data**: Comply with GDPR, HIPAA, etc.
+
+These patterns are for **defense-in-depth** when sensitive data accidentally appears in logs, not as a replacement for proper security practices.
+
+---
+
 ## Table of Contents
 
 1. [Cloud Providers](#cloud-providers)
@@ -377,15 +390,3 @@ const benchmarkPattern = (pattern: RegExp, text: string, iterations = 10000) => 
 };
 ```
 
----
-
-## Security Notes
-
-**CRITICAL**: Never log sensitive data in the first place!
-
-- **Credit cards**: Should NEVER appear in logs (PCI compliance)
-- **Passwords**: Should NEVER appear in logs
-- **API secrets**: Should NEVER appear in logs (use secret managers)
-- **Personal data**: Comply with GDPR, HIPAA, etc.
-
-These patterns are for **defense-in-depth** when sensitive data accidentally appears in logs, not as a replacement for proper security practices.

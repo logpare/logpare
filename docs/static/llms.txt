@@ -15,8 +15,12 @@ const logs = [
 
 const result = compress(logs);
 console.log(result.formatted);
-// ERROR Connection to <*> failed (2 occurrences)
-// INFO Request processed in <*> (1 occurrence)
+// === Log Compression Summary ===
+// Input: 3 lines → 2 templates (66.7% reduction)
+//
+// Top templates by frequency:
+// 1. [2x] ERROR Connection to <*> failed
+// 2. [1x] INFO Request processed in <*>
 ```
 
 ## Installation

@@ -156,9 +156,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
+  // Input validation helper
+  function validateArgs(args: unknown, required: string[]): Record<string, unknown> {
+    if (!args || typeof args !== 'object') {
+      throw new Error('Invalid arguments: expected object');
+    }
+    for (const key of required) {
+      if (!(key in args)) {
+        throw new Error(`Missing required argument: ${key}`);
+      }
+    }
+    return args as Record<string, unknown>;
+  }
+
   switch (name) {
     case 'compress_logs': {
-      const result = compress(args.logs as string[], {
+      const validatedArgs = validateArgs(args, ['logs']);
+      if (!Array.isArray(validatedArgs.logs)) {
+        throw new Error('Invalid logs: expected array of strings');
+      }
+      const result = compress(validatedArgs.logs as string[], {
         format: args.format as any,
         drain: {
           depth: args.depth as number,
@@ -178,7 +195,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case 'compress_file': {
       const fs = await import('fs/promises');
-      const content = await fs.readFile(args.filePath as string, 'utf-8');
+      const path = await import('path');
+
+      // Security: Validate file path to prevent directory traversal
+      const filePath = args.filePath as string;
+      const resolvedPath = path.resolve(filePath);
+
+      // Ensure the path doesn't contain traversal attempts
+      if (filePath.includes('..') || !resolvedPath.startsWith(process.cwd())) {
+        throw new Error('Invalid file path: directory traversal not allowed');
+      }
+
+      const content = await fs.readFile(resolvedPath, 'utf-8');
       const result = compressText(content, {
         format: args.format as any,
       });
