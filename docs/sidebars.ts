@@ -36,6 +36,7 @@ const sidebars: SidebarsConfig = {
         'guides/parameter-tuning',
         'guides/custom-preprocessing',
         'guides/mcp-integration',
+        'guides/vercel-web-analytics',
       ],
     },
     {
