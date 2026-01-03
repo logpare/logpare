@@ -1,0 +1,118 @@
+---
+sidebar_position: 2
+---
+
+# Installation
+
+logpare can be installed as a CLI tool (for command-line usage) or as a library (for programmatic usage in your projects).
+
+## As a CLI Tool
+
+Install globally to use the `logpare` command from anywhere:
+
+```bash
+npm install -g logpare
+```
+
+Verify the installation:
+
+```bash
+logpare --version
+```
+
+Now you can compress logs directly:
+
+```bash
+logpare server.log
+cat /var/log/syslog | logpare
+```
+
+## As a Library
+
+Install locally in your project for programmatic usage:
+
+```bash
+npm install logpare
+```
+
+Or with pnpm:
+
+```bash
+pnpm add logpare
+```
+
+Or with yarn:
+
+```bash
+yarn add logpare
+```
+
+### Using CLI with Local Install
+
+If you installed logpare locally (not globally), use `npx` to run the CLI:
+
+```bash
+npx logpare server.log
+cat /var/log/syslog | npx logpare
+```
+
+## Requirements
+
+- **Node.js**: Version 18.0 or higher (20.x, 22.x, or 24.x recommended)
+
+Check your Node version:
+
+```bash
+node --version
+```
+
+## Verify Installation
+
+### CLI Verification
+
+```bash
+logpare --help
+```
+
+You should see the help message with all available options.
+
+### Library Verification
+
+Create a test file `test-logpare.js`:
+
+```javascript
+import { compress } from 'logpare';
+
+const logs = [
+  'INFO Connection established',
+  'INFO Connection established',
+  'ERROR Connection failed',
+];
+
+const result = compress(logs);
+console.log(result.formatted);
+```
+
+Run it:
+
+```bash
+node test-logpare.js
+```
+
+You should see compressed output with templates.
+
+## TypeScript Support
+
+logpare is written in TypeScript and includes full type definitions. No additional `@types` package is needed.
+
+```typescript
+import { compress, type CompressionResult } from 'logpare';
+
+const result: CompressionResult = compress(logs);
+```
+
+## Next Steps
+
+- [Quick Start Guide](/docs/quick-start) - Learn basic usage
+- [API Reference](/docs/api/compress) - Explore the API
+- [CLI Reference](/docs/cli) - Command-line options
