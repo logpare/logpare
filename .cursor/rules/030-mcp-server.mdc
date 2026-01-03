@@ -39,6 +39,46 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 }));
 ```
 
+## Input Validation
+
+Always validate tool arguments before processing:
+```typescript
+function validateArgs(args: unknown, required: string[]): Record<string, unknown> {
+  if (!args || typeof args !== 'object') {
+    throw new Error('Invalid arguments: expected object');
+  }
+  for (const key of required) {
+    if (!(key in args)) {
+      throw new Error(`Missing required argument: ${key}`);
+    }
+  }
+  return args as Record<string, unknown>;
+}
+
+// Usage in handler
+case 'compress_logs': {
+  const validated = validateArgs(args, ['logs']);
+  if (!Array.isArray(validated.logs)) {
+    throw new Error('Invalid logs: expected array of strings');
+  }
+  // ... process validated input
+}
+```
+
+## Security: File Path Validation
+
+Prevent directory traversal when handling file paths:
+```typescript
+import path from 'path';
+
+const filePath = args.filePath as string;
+const resolvedPath = path.resolve(filePath);
+
+if (filePath.includes('..') || !resolvedPath.startsWith(process.cwd())) {
+  throw new Error('Invalid file path: directory traversal not allowed');
+}
+```
+
 ## Error Handling
 
 Return structured errors with `isError: true`:

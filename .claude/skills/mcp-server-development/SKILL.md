@@ -222,7 +222,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'analyze_templates': {
-      const result = compress(args.logs as string[]);
+      const validatedArgs = validateArgs(args, ['logs']);
+      if (!Array.isArray(validatedArgs.logs)) {
+        throw new Error('Invalid logs: expected array of strings');
+      }
+      const result = compress(validatedArgs.logs as string[]);
 
       // Generate analysis
       const analysis = `
@@ -471,7 +475,7 @@ Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_deskt
 
 Once configured, Claude can use the tools:
 
-```
+```text
 User: "Analyze these logs for me"
 [pastes log lines]
 
@@ -562,7 +566,7 @@ Adapt for HTTP transport instead of stdio for API Gateway integration.
 
 ### Log Analysis Assistant
 AI can automatically compress logs and suggest fixes:
-```
+```text
 User: "My app is slow, here are the logs"
 AI: [compresses logs] → Identifies "Database query taking 2.5s" pattern
 AI: Suggests "Add index on user_id column"
