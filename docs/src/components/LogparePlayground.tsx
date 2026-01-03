@@ -49,7 +49,7 @@ export function LogparePlayground({
   const appCode = `import { compressText } from 'logpare';
 
 // Input logs
-const logs = \`${logs.replace(/`/g, '\\`')}\`;
+const logs = ${JSON.stringify(logs)};
 
 // Compression options
 const options = ${JSON.stringify(options, null, 2)};

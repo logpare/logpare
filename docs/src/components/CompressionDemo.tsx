@@ -82,10 +82,20 @@ export function CompressionDemo({
   const [selectedFormat, setSelectedFormat] = useState(format);
   const selectedDataset = DATASETS[dataset];
 
+  // Escape all characters that have special meaning in template literals
+  const escapeForTemplateLiteral = (value: string): string =>
+    value
+      // Escape backslashes first to avoid double-processing
+      .replace(/\\/g, '\\\\')
+      // Escape backticks, which delimit template literals
+      .replace(/`/g, '\\`')
+      // Escape `${` to prevent unintended interpolation
+      .replace(/\$\{/g, '\\${');
+
   const appCode = `import { compressText } from 'logpare';
 
 // ${selectedDataset.name}
-const logs = \`${selectedDataset.logs.replace(/`/g, '\\`')}\`;
+const logs = \`${escapeForTemplateLiteral(selectedDataset.logs)}\`;
 
 const options = {
   ...${JSON.stringify(selectedDataset.options)},
