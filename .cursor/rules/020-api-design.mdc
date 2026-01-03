@@ -1,0 +1,56 @@
+---
+description: Public API design and backwards compatibility
+globs: src/{api,types,index}.ts
+---
+
+# API Design Principles
+
+## Backwards Compatibility
+
+Add optional parameters, never change existing types:
+```typescript
+interface DrainOptions {
+  depth?: number;
+  simThreshold?: number;
+  maxClusters?: number;
+  onProgress?: ProgressCallback;  // NEW - added at end
+}
+```
+
+## Sensible Defaults
+
+Everything optional with good defaults:
+```typescript
+export function compress(
+  lines: string[],
+  options: CompressOptions = {}
+): CompressionResult {
+  const { depth = 4, simThreshold = 0.4 } = options;
+}
+```
+
+## Progress Callbacks
+
+Emit at key milestones:
+```typescript
+onProgress?.({
+  processedLines: 0,
+  totalLines: lines.length,
+  currentPhase: 'parsing',
+  percentComplete: 0,
+});
+```
+
+## Return Structured Objects
+
+```typescript
+// ✅ Named properties
+interface CompressionResult {
+  templates: Template[];
+  stats: CompressionStats;
+  formatted: string;
+}
+
+// ❌ Positional tuples
+function compress(): [Template[], Stats, string] { }
+```

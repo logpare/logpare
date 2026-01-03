@@ -1,0 +1,52 @@
+---
+alwaysApply: true
+---
+
+# Logpare Architecture
+
+## Module Structure
+
+```
+src/
+├── index.ts          # Public API exports ONLY
+├── api.ts            # compress(), compressText()
+├── types.ts          # Shared interfaces
+├── drain/            # Core algorithm
+├── preprocessing/    # Pattern matching
+└── output/           # Formatters
+```
+
+## Public API Surface
+
+**Only export through `src/index.ts`:**
+```typescript
+// ✅ Public exports
+export { compress, compressText } from './api.js';
+export { createDrain } from './drain/drain.js';
+export type { CompressionResult } from './types.js';
+
+// ❌ Internal - never export
+export { DrainNode } from './drain/node.js';
+```
+
+## Dependency Rules
+
+Dependencies flow inward:
+- `api.ts` → `drain/` → `preprocessing/`, `output/`
+- **NEVER** circular dependencies
+
+## Import Conventions
+
+```typescript
+// ✅ Always use .js extension (ESM)
+import { DrainNode } from './node.js';
+
+// ❌ Missing extension breaks ESM
+import { DrainNode } from './node';
+```
+
+## Class Ownership
+
+- `DrainNode` - Tree structure only
+- `LogCluster` - Template data only
+- `Drain` - Orchestrates interactions

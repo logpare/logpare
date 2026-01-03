@@ -1,0 +1,64 @@
+---
+description: V8 performance optimization for hot path code in drain algorithm
+globs: src/drain/**/*.ts
+---
+
+# V8 Optimization Guidelines
+
+## Critical: Use Map for Dynamic Properties
+
+```typescript
+// ✅ GOOD - Monomorphic, V8-optimizable
+class DrainNode {
+  children: Map<string, DrainNode>;
+  constructor() {
+    this.children = new Map();
+  }
+}
+
+// ❌ BAD - Polymorphic, deoptimizes
+class DrainNode {
+  children: { [key: string]: DrainNode } = {};
+}
+```
+
+## Initialize All Properties in Constructor
+
+```typescript
+// ✅ GOOD - Predictable memory layout
+class LogCluster {
+  id: string;
+  pattern: string[];
+  count: number;
+
+  constructor(id: string) {
+    this.id = id;
+    this.pattern = [];
+    this.count = 0;
+  }
+}
+
+// ❌ BAD - Properties added later
+class LogCluster {
+  id: string;
+  constructor(id: string) {
+    this.id = id;
+    // count added conditionally - BAD
+  }
+}
+```
+
+## Never Use `delete` Operator
+
+```typescript
+// ✅ GOOD
+node.clusters.delete(clusterId);
+node.parent = null;
+
+// ❌ BAD - Changes object shape
+delete node.children;
+```
+
+## Consistent Property Access Order
+
+Access properties in the same order in hot paths for V8 inline cache optimization.

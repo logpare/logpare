@@ -40,4 +40,7 @@ Thumbs.db
 
 # Local development
 planning/
-.claude/
+
+# Claude local files (not skills)
+.claude/*.local.md
+CLAUDE.local.md

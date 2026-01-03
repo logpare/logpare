@@ -1,0 +1,217 @@
+---
+title: Interactive Playground
+description: Try logpare compression in your browser with real-time examples
+---
+
+import { LogparePlayground } from '@site/src/components/LogparePlayground';
+import { CompressionDemo } from '@site/src/components/CompressionDemo';
+
+# Interactive Playground
+
+Experiment with logpare's semantic log compression in real-time. Edit the code, adjust parameters, and see how different settings affect compression results.
+
+## Full Playground
+
+Try the full-featured playground below. You can:
+- Edit log input directly in the code
+- Adjust compression parameters (depth, similarity threshold)
+- Toggle between output formats (summary, detailed, JSON)
+- See real-time compression stats
+
+<LogparePlayground />
+
+---
+
+## Quick Demos
+
+### Basic Log Compression
+
+A simple example showing how logpare compresses repetitive log patterns.
+
+<CompressionDemo
+  dataset="basic"
+  title="Basic Example"
+  description="Common log patterns with errors, info messages, and warnings"
+/>
+
+### HDFS Distributed System Logs
+
+Real-world Hadoop Distributed File System logs with complex patterns.
+
+<CompressionDemo
+  dataset="hdfs"
+  title="HDFS Logs"
+  description="Hadoop filesystem logs showing block operations and replication"
+/>
+
+### Spark Application Logs
+
+Apache Spark job execution logs with service initialization and job tracking.
+
+<CompressionDemo
+  dataset="spark"
+  title="Spark Logs"
+  description="Spark application startup and job execution logs"
+/>
+
+### Error Analysis
+
+Focused error log analysis with connection failures, authentication errors, and API issues.
+
+<CompressionDemo
+  dataset="errors"
+  title="Error Pattern Analysis"
+  description="Analyzing error patterns to identify common failure modes"
+/>
+
+---
+
+## Understanding the Output
+
+### Summary Format
+The summary format provides a compact overview:
+- Template patterns with `<*>` wildcards for variable parts
+- Occurrence count for each pattern
+- Overall compression statistics
+
+### Detailed Format
+The detailed format includes:
+- Full template patterns
+- Sample variable values extracted from logs
+- Severity levels (error/warning/info)
+- Extracted metadata (URLs, status codes, correlation IDs)
+- Line number ranges
+
+### JSON Format
+Machine-readable output with:
+- Version field for compatibility
+- Complete template metadata
+- All compression statistics
+- Structured data for programmatic analysis
+
+---
+
+## Tuning Parameters
+
+### Depth (3-6)
+Controls how deep the parse tree goes. Higher depth = more specific templates.
+- **Lower (3-4)**: Broader patterns, better compression
+- **Higher (5-6)**: More specific patterns, better for noisy logs
+
+### Similarity Threshold (0.1-0.9)
+Determines when logs are similar enough to share a template.
+- **Lower (0.2-0.3)**: More aggressive grouping, fewer templates
+- **Higher (0.5-0.6)**: Stricter matching, more templates
+
+### When to Adjust
+
+**Too many templates?**
+- Lower similarity threshold (try 0.3 or 0.2)
+- Reduce depth (try 3)
+
+**Templates too generic?**
+- Raise similarity threshold (try 0.5 or 0.6)
+- Increase depth (try 5 or 6)
+
+---
+
+## Try Your Own Logs
+
+Use the full playground at the top to test your own log data:
+
+1. Replace the log samples in the code editor
+2. Adjust compression parameters using the sliders
+3. Toggle output formats to see different views
+4. Check the console for compression statistics
+
+---
+
+## Next Steps
+
+- [Installation Guide](/docs/installation) - Add logpare to your project
+- [API Reference](/docs/api) - Complete API documentation
+- [CLI Usage](/docs/cli) - Command-line tool for batch processing
+- [Custom Preprocessing](/docs/preprocessing) - Handle domain-specific log formats
+
+---
+
+## Example Code Patterns
+
+### Basic Compression
+```typescript
+import { compressText } from 'logpare';
+
+const logs = `
+ERROR Connection failed
+ERROR Connection failed
+INFO Request completed
+`;
+
+const result = compressText(logs);
+console.log(result.formatted);
+```
+
+### With Custom Options
+```typescript
+import { compress } from 'logpare';
+
+const lines = ['ERROR ...', 'WARN ...', 'INFO ...'];
+const result = compress(lines, {
+  depth: 5,
+  simThreshold: 0.3,
+  format: 'detailed',
+  maxClusters: 500,
+});
+```
+
+### Streaming Processing
+```typescript
+import { createDrain } from 'logpare';
+
+const drain = createDrain({ depth: 4, simThreshold: 0.4 });
+
+// Process logs incrementally
+drain.process('ERROR Connection failed');
+drain.process('ERROR Connection timeout');
+
+// Get results
+const clusters = drain.getClusters();
+console.log(`Found ${clusters.length} templates`);
+```
+
+### Custom Preprocessing
+```typescript
+import { compress, defineStrategy, DEFAULT_PATTERNS, WILDCARD } from 'logpare';
+
+const customStrategy = defineStrategy({
+  preprocess(line: string): string {
+    let result = line;
+    // Apply default patterns
+    for (const [, pattern] of Object.entries(DEFAULT_PATTERNS)) {
+      result = result.replace(pattern, WILDCARD);
+    }
+    // Add custom patterns
+    result = result.replace(/order-[A-Z0-9]{8}/g, WILDCARD);
+    return result;
+  },
+});
+
+const result = compress(logs, { preprocessing: customStrategy });
+```
+
+---
+
+## Tips for Best Results
+
+1. **Start with defaults** - The default settings (depth: 4, simThreshold: 0.4) work well for most logs
+2. **Use detailed format** - When debugging, use detailed format to see sample variables
+3. **Check severity** - Templates automatically detect error/warning/info severity
+4. **Look for metadata** - Detailed output extracts URLs, status codes, and correlation IDs
+5. **Iterate on parameters** - Adjust depth and threshold based on your compression needs
+
+---
+
+## Feedback
+
+Have suggestions for the playground? Found a bug?
+[Open an issue on GitHub](https://github.com/logpare/logpare/issues)

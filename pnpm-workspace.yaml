@@ -1,0 +1,6 @@
+# pnpm workspace configuration
+# This enables the docs site to use the local logpare package
+
+packages:
+  - '.'
+  - 'docs'

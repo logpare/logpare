@@ -1,0 +1,331 @@
+# logpare - Full Documentation for LLMs
+
+> Semantic log compression library for LLM context windows using the Drain algorithm.
+
+## Overview
+
+logpare compresses repetitive log data by extracting semantic templates. It achieves 60-90% token reduction while preserving diagnostic information, making it ideal for feeding logs into LLM context windows.
+
+## Installation
+
+```bash
+npm install logpare
+# or
+pnpm add logpare
+```
+
+## Core Functions
+
+### compress(lines, options?)
+
+Compress an array of log lines into semantic templates.
+
+```typescript
+import { compress } from 'logpare';
+
+const result = compress([
+  'ERROR Connection to 192.168.1.100 failed after 30s',
+  'ERROR Connection to 192.168.1.101 failed after 25s',
+  'INFO Request abc123 processed in 45ms',
+  'INFO Request xyz789 processed in 52ms',
+]);
+
+console.log(result.formatted);
+// Output:
+// ERROR Connection to <*> failed after <*> (2 occurrences)
+// INFO Request <*> processed in <*> (2 occurrences)
+
+console.log(result.stats);
+// { inputLines: 4, uniqueTemplates: 2, compressionRatio: 0.5, estimatedTokenReduction: 50 }
+```
+
+### compressText(text, options?)
+
+Compress a multiline string (splits on newlines).
+
+```typescript
+import { compressText } from 'logpare';
+
+const logs = `
+ERROR Connection failed
+ERROR Connection failed
+INFO Request completed
+`;
+
+const result = compressText(logs);
+```
+
+### createDrain(options?)
+
+Create a Drain instance for incremental/streaming processing.
+
+```typescript
+import { createDrain } from 'logpare';
+
+const drain = createDrain({ depth: 4, simThreshold: 0.4 });
+
+// Process logs one at a time
+drain.process('ERROR Connection failed');
+drain.process('ERROR Connection timeout');
+
+// Get results
+const clusters = drain.getClusters();
+```
+
+## Options Reference
+
+### DrainOptions
+
+```typescript
+interface DrainOptions {
+  depth?: number;           // Parse tree depth (default: 4)
+  simThreshold?: number;    // Similarity threshold 0-1 (default: 0.4)
+  maxChildren?: number;     // Max children per tree node (default: 100)
+  maxClusters?: number;     // Max total templates (default: 1000)
+  maxSamples?: number;      // Sample variables per template (default: 3)
+  preprocessing?: ParsingStrategy;  // Custom preprocessing
+  onProgress?: ProgressCallback;    // Progress reporting
+}
+```
+
+### CompressOptions
+
+```typescript
+interface CompressOptions extends DrainOptions {
+  format?: 'summary' | 'detailed' | 'json';
+}
+```
+
+## Output Formats
+
+### summary (default)
+
+Compact output showing templates and frequencies:
+
+```
+=== Log Compression Summary ===
+Input: 1000 lines → 15 templates (98.5% reduction)
+
+Templates (by frequency):
+  [450] ERROR Connection to <*> failed
+  [320] INFO Request <*> completed in <*>
+  [180] WARN Retry attempt <*> for <*>
+```
+
+### detailed
+
+Full output with sample variables and metadata:
+
+```
+=== Detailed Compression Results ===
+
+Template #1 (450 occurrences)
+  Pattern: ERROR Connection to <*> failed
+  Severity: error
+  Variables: [["192.168.1.100"], ["192.168.1.101"], ["10.0.0.50"]]
+  URLs: api.example.com, cdn.example.com
+  First seen: line 1
+  Last seen: line 998
+```
+
+### json
+
+Machine-readable JSON:
+
+```json
+{
+  "version": "1.1",
+  "templates": [...],
+  "stats": {...}
+}
+```
+
+## Template Interface
+
+```typescript
+interface Template {
+  id: string;
+  pattern: string;              // Template with <*> wildcards
+  occurrences: number;          // Match count
+  sampleVariables: string[][];  // Captured values
+  firstSeen: number;            // First line number
+  lastSeen: number;             // Last line number
+  severity: 'error' | 'warning' | 'info';
+  urlSamples: string[];         // Extracted hostnames
+  fullUrlSamples: string[];     // Complete URLs
+  statusCodeSamples: number[];  // HTTP status codes
+  correlationIdSamples: string[]; // Trace/request IDs
+  durationSamples: string[];    // Timing values
+  isStackFrame: boolean;
+}
+```
+
+## Custom Preprocessing
+
+Create custom strategies for domain-specific logs:
+
+```typescript
+import { defineStrategy, DEFAULT_PATTERNS, WILDCARD } from 'logpare';
+
+const customStrategy = defineStrategy({
+  preprocess(line: string): string {
+    let result = line;
+
+    // Apply default patterns
+    for (const [, pattern] of Object.entries(DEFAULT_PATTERNS)) {
+      result = result.replace(pattern, WILDCARD);
+    }
+
+    // Add custom patterns
+    result = result.replace(/order-[A-Z0-9]{8}/g, WILDCARD);
+    result = result.replace(/user_\d+/g, WILDCARD);
+
+    return result;
+  },
+
+  tokenize(line: string): string[] {
+    return line.split(/\s+/).filter(Boolean);
+  },
+
+  getSimThreshold(depth: number): number {
+    return depth <= 2 ? 0.3 : 0.4;
+  }
+});
+
+const result = compress(logs, { preprocessing: customStrategy });
+```
+
+## Built-in Patterns
+
+DEFAULT_PATTERNS includes regex for:
+- IP addresses (IPv4, IPv6)
+- UUIDs
+- Timestamps (ISO 8601, Unix)
+- Hex strings
+- File paths
+- URLs
+- Numbers
+
+## Utility Functions
+
+```typescript
+import { detectSeverity, isStackFrame, extractUrls } from 'logpare';
+
+detectSeverity('ERROR Connection failed');  // 'error'
+detectSeverity('WARN Deprecated API');      // 'warning'
+detectSeverity('INFO Request completed');   // 'info'
+
+isStackFrame('    at Function.name (file.js:123:45)');  // true
+
+extractUrls('GET https://api.example.com/users');  // ['api.example.com']
+```
+
+## CLI Usage
+
+```bash
+# Basic compression
+logpare compress access.log
+
+# With format
+logpare compress --format detailed server.log
+
+# With tuning options
+logpare compress --depth 5 --sim-threshold 0.5 app.log
+
+# Pipe from stdin
+cat logs/*.log | logpare compress
+
+# Output to file
+logpare compress --output compressed.txt access.log
+```
+
+## Parameter Tuning Guide
+
+### Too many templates?
+- Lower `simThreshold` (try 0.3 or 0.2)
+- Add custom preprocessing for unmasked variables
+
+### Templates too generic?
+- Raise `simThreshold` (try 0.5 or 0.6)
+- Increase `depth` (try 5 or 6)
+
+### Memory issues?
+- Lower `maxClusters` (try 500)
+- Lower `maxChildren` (try 50)
+
+### Recommended settings by log type:
+
+**Structured logs (JSON, CSV)**
+```typescript
+{ depth: 3, simThreshold: 0.5 }
+```
+
+**Noisy application logs**
+```typescript
+{ depth: 5, simThreshold: 0.3 }
+```
+
+**System logs (syslog)**
+```typescript
+{ depth: 4, simThreshold: 0.4 }  // defaults
+```
+
+## MCP Server Integration
+
+For AI coding assistants, install the MCP server:
+
+```bash
+npm install -g @logpare/mcp
+```
+
+### Claude Desktop Configuration
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "logpare": {
+      "command": "npx",
+      "args": ["@logpare/mcp"]
+    }
+  }
+}
+```
+
+### Available MCP Tools
+
+- `compress_logs` - Compress log array with options
+- `analyze_log_patterns` - Extract patterns without full compression
+- `estimate_compression` - Quick compression ratio estimate
+
+## Algorithm: Drain
+
+logpare uses the Drain algorithm for log parsing:
+
+1. **Preprocessing**: Mask known variables (IPs, UUIDs, timestamps)
+2. **Tokenization**: Split log line into tokens
+3. **Tree Navigation**: Navigate parse tree by token count → first token → subsequent tokens
+4. **Cluster Matching**: Find cluster with highest similarity above threshold
+5. **Template Update**: Update pattern, replacing differing tokens with `<*>`
+
+The parse tree structure:
+```
+Root
+└── Token Count (e.g., "5")
+    └── First Token (e.g., "ERROR")
+        └── Second Token (e.g., "Connection")
+            └── LogCluster (template + metadata)
+```
+
+## Performance
+
+- Processes 10,000+ lines/second on typical hardware
+- Memory usage scales with `maxClusters` × `maxChildren`
+- V8-optimized with monomorphic classes and Map-based children
+
+## Links
+
+- GitHub: https://github.com/logpare/logpare
+- npm: https://www.npmjs.com/package/logpare
+- MCP Server: https://www.npmjs.com/package/@logpare/mcp

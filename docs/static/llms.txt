@@ -1,0 +1,92 @@
+# logpare
+
+> Semantic log compression library for LLM context windows. Uses the Drain algorithm to extract templates from repetitive log data, achieving 60-90% token reduction while preserving diagnostic information.
+
+## Quick Start
+
+```typescript
+import { compress } from 'logpare';
+
+const logs = [
+  'ERROR Connection to 192.168.1.100 failed',
+  'ERROR Connection to 192.168.1.101 failed',
+  'INFO Request processed in 45ms',
+];
+
+const result = compress(logs);
+console.log(result.formatted);
+// === Log Compression Summary ===
+// Input: 3 lines → 2 templates (66.7% reduction)
+//
+// Top templates by frequency:
+// 1. [2x] ERROR Connection to <*> failed
+// 2. [1x] INFO Request processed in <*>
+```
+
+## Installation
+
+```bash
+npm install logpare
+```
+
+## Core API
+
+- `compress(lines: string[], options?): CompressionResult` - Compress log lines into templates
+- `compressText(text: string, options?): CompressionResult` - Compress multiline text
+- `createDrain(options?): Drain` - Create Drain instance for incremental processing
+
+## Key Options
+
+```typescript
+interface DrainOptions {
+  depth?: number;           // Parse tree depth (default: 4)
+  simThreshold?: number;    // Similarity threshold 0-1 (default: 0.4)
+  maxChildren?: number;     // Max children per node (default: 100)
+  maxClusters?: number;     // Max templates (default: 1000)
+  format?: 'summary' | 'detailed' | 'json';
+}
+```
+
+## Output Formats
+
+- `summary` - Compact template list with frequencies
+- `detailed` - Full templates with sample variables and metadata
+- `json` - Machine-readable JSON output
+
+## Template Structure
+
+Each template contains:
+- `pattern: string` - Template with `<*>` wildcards
+- `occurrences: number` - Match count
+- `sampleVariables: string[][]` - Captured variable values
+- `severity: 'error' | 'warning' | 'info'` - Auto-detected severity
+- `urlSamples`, `statusCodeSamples`, `durationSamples` - Diagnostic metadata
+
+## CLI Usage
+
+```bash
+# Compress log file
+logpare compress access.log
+
+# With options
+logpare compress --format detailed --depth 5 app.log
+
+# Pipe from stdin
+cat logs/*.log | logpare compress
+```
+
+## Links
+
+- [GitHub Repository](https://github.com/logpare/logpare)
+- [npm Package](https://www.npmjs.com/package/logpare)
+- [MCP Server](https://www.npmjs.com/package/@logpare/mcp)
+
+## MCP Integration
+
+For AI coding assistants (Claude, Cursor, etc.), use the MCP server:
+
+```bash
+npm install -g @logpare/mcp
+```
+
+Configure in Claude Desktop or Cursor to enable direct log compression from your AI assistant.
