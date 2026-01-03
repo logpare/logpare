@@ -44,3 +44,4 @@ planning/
 # Claude local files (not skills)
 .claude/*.local.md
 CLAUDE.local.md
+.vscode/settings.json
