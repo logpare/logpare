@@ -2,7 +2,26 @@
  * Custom CSS for logpare documentation
  */
 
+/* Font imports */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://db.onlinewebfonts.com/c/e7849c6fffc1365b81185399c6ae9804?family=Nyght+Serif+Light');
+@import url('https://api.fontshare.com/v2/css?f[]=switzer@300,400,500,600&display=swap');
+
 :root {
+  /* Typography */
+  --font-serif: 'Nyght Serif Light', 'Bodoni Moda', 'Didot', Georgia, serif;
+  --font-sans: 'Switzer', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+
+  /* Override Docusaurus defaults */
+  --ifm-font-family-base: var(--font-sans);
+  --ifm-font-family-monospace: var(--font-mono);
+
+  /* Editorial palette (for "paper" elements) */
+  --paper: #f8f5f0;
+  --paper-shadow: #ebe6dd;
+  --ink: #1a1917;
+  --ink-muted: #4a4843;
   --ifm-color-primary: #2e8555;
   --ifm-color-primary-dark: #29784c;
   --ifm-color-primary-darker: #277148;
@@ -70,4 +89,48 @@ a:hover {
 .footer {
   background-color: var(--ifm-footer-background-color);
   padding: 2rem 0;
+}
+
+/* Dev tool site: headings in mono */
+h1, h2, h3 {
+  font-family: var(--ifm-font-family-monospace);
+  letter-spacing: -0.02em;
+}
+
+/* Author badge in navbar */
+.navbar .author-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 100px;
+  text-decoration: none;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+}
+
+[data-theme='dark'] .navbar .author-badge {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.navbar .author-badge:hover {
+  background: rgba(0, 0, 0, 0.06);
+  text-decoration: none;
+}
+
+[data-theme='dark'] .navbar .author-badge:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.navbar .author-badge .by {
+  font-family: var(--font-sans);
+  color: var(--ifm-color-emphasis-600);
+}
+
+.navbar .author-badge .name {
+  font-family: var(--font-serif);
+  color: var(--ifm-color-emphasis-900);
 }

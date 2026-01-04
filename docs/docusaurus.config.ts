@@ -81,6 +81,11 @@ const config: Config = {
           label: 'npm',
           position: 'right',
         },
+        {
+          type: 'html',
+          position: 'right',
+          value: '<a href="https://hirejeffgreen.com" class="author-badge" target="_blank" rel="noopener noreferrer"><span class="by">by</span><span class="name">Jeff Green</span></a>',
+        },
       ],
     },
     footer: {

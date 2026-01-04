@@ -8,6 +8,7 @@ function Hero() {
   return (
     <header className={styles.hero}>
       <div className={styles.heroInner}>
+        <span className={styles.badge}>Open Source · MIT License</span>
         <h1 className={styles.heroTitle}>logpare</h1>
         <p className={styles.heroSubtitle}>
           Semantic log compression for LLM context windows
@@ -119,6 +120,38 @@ function Features() {
   );
 }
 
+function WhyIBuiltThis() {
+  return (
+    <section className={styles.editorialSection}>
+      <div className={styles.makerNote}>
+        <h2 className={styles.makerNoteTitle}>Why I built this</h2>
+        <p className={styles.makerNoteText}>
+          As I began building with AI coding assistants, I hit a wall:{' '}
+          <strong>context windows are expensive real estate.</strong>
+        </p>
+        <p className={styles.makerNoteText}>
+          Most developers just truncate logs or <code>grep</code> for errors.
+          That felt imprecise. I wanted a way to keep the <em>structure</em> of
+          the data without the <em>repetition</em>.
+        </p>
+        <p className={styles.makerNoteText}>
+          logpare is my attempt to solve the "noise vs. signal" problem—using
+          the Drain algorithm to treat logs as a language rather than just text.
+          It extracts the patterns that matter and discards the redundancy.
+        </p>
+        <div className={styles.makerSig}>
+          <div className={styles.makerAvatar}>JG</div>
+          <div className={styles.makerInfo}>
+            <span className={styles.makerLabel}>Built by</span>
+            <span className={styles.makerName}>Jeff Green</span>
+            <span className={styles.makerTitle}>Product Engineer</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function QuickStart() {
   return (
     <section className={styles.section}>
@@ -173,6 +206,7 @@ export default function Home(): React.JSX.Element {
       <Hero />
       <main>
         <BeforeAfter />
+        <WhyIBuiltThis />
         <Features />
         <QuickStart />
       </main>
