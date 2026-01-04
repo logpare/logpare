@@ -22,6 +22,11 @@ const config: Config = {
         mono: ['var(--font-mono)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'monospace'],
       },
       colors: {
+        primary: {
+          DEFAULT: 'var(--color-primary)',
+          dark: 'var(--color-primary-dark)',
+          light: 'var(--color-primary-light)',
+        },
         paper: '#f8f5f0',
         'paper-shadow': '#ebe6dd',
         ink: '#1a1917',
