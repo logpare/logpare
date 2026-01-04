@@ -1,0 +1,19 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "installation",
+    "quick-start",
+    "---API Reference---",
+    "api/compress",
+    "api/compress-text",
+    "api/create-drain",
+    "api/types",
+    "---Guides---",
+    "guides/parameter-tuning",
+    "guides/custom-preprocessing",
+    "guides/mcp-integration",
+    "---",
+    "cli"
+  ]
+}

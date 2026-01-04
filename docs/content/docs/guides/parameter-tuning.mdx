@@ -1,0 +1,305 @@
+---
+title: Parameter Tuning Guide
+description: Learn how to optimize logpare's parameters for different log types
+---
+
+Learn how to optimize logpare's parameters for different log types and use cases.
+
+## Core Parameters
+
+logpare has four key parameters that control template generation:
+
+| Parameter | Default | Range | Effect |
+|-----------|---------|-------|--------|
+| `depth` | 4 | 2-8 | Parse tree depth - higher = more specific templates |
+| `simThreshold` | 0.4 | 0.0-1.0 | Similarity threshold - higher = more templates |
+| `maxChildren` | 100 | 10-500 | Max children per node - affects tree width |
+| `maxClusters` | 1000 | 100-10000 | Max total templates - limits memory |
+
+## Tuning Strategy
+
+### Problem: Too Many Templates
+
+**Symptoms:**
+- Hundreds or thousands of templates for a moderate log file
+- Similar-looking templates that should be grouped together
+- High compression ratio (e.g., 0.8 or 0.9)
+
+**Solutions:**
+
+#### 1. Lower the Similarity Threshold
+
+Make template matching more lenient:
+
+```typescript
+compress(logs, {
+  simThreshold: 0.3, // More aggressive grouping
+});
+```
+
+**When to use:**
+- Logs with high variability in non-critical tokens
+- Similar messages with minor differences
+- Noisy application logs
+
+#### 2. Add Custom Preprocessing
+
+Mask domain-specific variables that aren't caught by default patterns:
+
+```typescript
+import { defineStrategy, DEFAULT_PATTERNS, WILDCARD } from 'logpare';
+
+const strategy = defineStrategy({
+  preprocess(line: string): string {
+    let result = line;
+
+    // Apply default patterns
+    for (const [, pattern] of Object.entries(DEFAULT_PATTERNS)) {
+      result = result.replace(pattern, WILDCARD);
+    }
+
+    // Add custom patterns
+    result = result.replace(/order-[A-Z0-9]{8}/g, WILDCARD);
+    result = result.replace(/user_\d+/g, WILDCARD);
+    result = result.replace(/session-[a-f0-9]+/gi, WILDCARD);
+
+    return result;
+  }
+});
+
+compress(logs, { preprocessing: strategy });
+```
+
+### Problem: Templates Too Generic
+
+**Symptoms:**
+- Very few templates (e.g., 5-10 for thousands of lines)
+- Templates grouping unrelated log types together
+- Loss of important diagnostic information
+
+**Solutions:**
+
+#### 1. Raise the Similarity Threshold
+
+Make template matching more strict:
+
+```typescript
+compress(logs, {
+  simThreshold: 0.5, // More conservative grouping
+});
+```
+
+#### 2. Increase Tree Depth
+
+Allow the algorithm to consider more tokens:
+
+```typescript
+compress(logs, {
+  depth: 5, // or 6
+});
+```
+
+**When to use:**
+- Structured logs with many informative tokens
+- When you need fine-grained template separation
+- Logs with consistent formatting
+
+### Problem: High Memory Usage
+
+**Symptoms:**
+- Out of memory errors on large log files
+- Slow processing times
+- System becomes unresponsive
+
+**Solutions:**
+
+#### 1. Limit Maximum Clusters
+
+Cap the total number of templates:
+
+```typescript
+compress(logs, {
+  maxClusters: 500,
+});
+```
+
+#### 2. Reduce Max Children
+
+Prevent tree explosion:
+
+```typescript
+compress(logs, {
+  maxChildren: 50,
+});
+```
+
+#### 3. Process in Batches
+
+Use incremental processing for very large files:
+
+```typescript
+import { createDrain } from 'logpare';
+
+const drain = createDrain({
+  maxClusters: 500,
+  maxChildren: 50,
+});
+
+// Process in chunks
+const chunkSize = 10000;
+for (let i = 0; i < logs.length; i += chunkSize) {
+  const chunk = logs.slice(i, i + chunkSize);
+  drain.addLogLines(chunk);
+}
+
+const result = drain.getResult();
+```
+
+## Recommended Settings by Log Type
+
+### Structured Logs (JSON, CSV)
+
+These logs have consistent fields and formatting:
+
+```typescript
+compress(logs, {
+  depth: 3,
+  simThreshold: 0.5,
+});
+```
+
+**Why:**
+- Structured logs have predictable token positions
+- Higher threshold prevents over-grouping
+- Shallow depth is sufficient
+
+### Noisy Application Logs
+
+Logs with variable formatting and many unique values:
+
+```typescript
+compress(logs, {
+  depth: 5,
+  simThreshold: 0.3,
+});
+```
+
+**Why:**
+- Higher depth captures more context
+- Lower threshold groups similar messages
+- Handles inconsistent formatting
+
+### System Logs (syslog, journald)
+
+Well-formatted system logs with standard patterns:
+
+```typescript
+compress(logs, {
+  depth: 4,        // Default
+  simThreshold: 0.4, // Default
+});
+```
+
+**Why:**
+- Default settings work well for standard formats
+- System logs have consistent structure
+- Good balance between grouping and specificity
+
+### High-Volume Logs (>1M lines)
+
+Optimize for memory efficiency:
+
+```typescript
+compress(logs, {
+  depth: 4,
+  simThreshold: 0.4,
+  maxClusters: 500,
+  maxChildren: 50,
+});
+```
+
+### Web Server Access Logs
+
+HTTP request logs with standard formats:
+
+```typescript
+compress(logs, {
+  depth: 6,
+  simThreshold: 0.5,
+});
+```
+
+**Why:**
+- Access logs have many tokens (method, path, status, etc.)
+- Higher depth captures full request patterns
+- Higher threshold prevents grouping different endpoints
+
+## Advanced Tuning
+
+### Depth-Dependent Similarity Threshold
+
+Adjust threshold based on tree depth:
+
+```typescript
+const strategy = defineStrategy({
+  getSimThreshold(depth: number): number {
+    if (depth <= 2) return 0.3; // More lenient for early tokens
+    if (depth <= 4) return 0.4; // Default for middle
+    return 0.5; // Stricter for deeper levels
+  }
+});
+
+compress(logs, { preprocessing: strategy });
+```
+
+**Use case:** When early tokens are highly variable but later tokens are consistent.
+
+## Diagnostic Tools
+
+### Check Compression Ratio
+
+Monitor how well compression is working:
+
+```typescript
+const result = compress(logs);
+
+console.log(`Compression ratio: ${result.stats.compressionRatio}`);
+console.log(`Token reduction: ${result.stats.estimatedTokenReduction}%`);
+
+if (result.stats.compressionRatio > 0.5) {
+  console.log('⚠️  Low compression - consider lowering simThreshold');
+} else if (result.stats.compressionRatio < 0.05) {
+  console.log('⚠️  Very high compression - templates may be too generic');
+}
+```
+
+### Analyze Template Distribution
+
+Check if templates are well-distributed:
+
+```typescript
+const result = compress(logs, { format: 'json' });
+
+const occurrences = result.templates.map(t => t.occurrences);
+const avg = occurrences.reduce((a, b) => a + b, 0) / occurrences.length;
+const max = Math.max(...occurrences);
+
+console.log(`Average occurrences: ${avg}`);
+console.log(`Max occurrences: ${max}`);
+
+if (max > avg * 10) {
+  console.log('⚠️  Skewed distribution - one template dominates');
+}
+```
+
+## Summary
+
+| Problem | Solution | Parameter Change |
+|---------|----------|------------------|
+| Too many templates | Lower threshold | `simThreshold: 0.3` |
+| Templates too generic | Raise threshold | `simThreshold: 0.5` |
+| Missing grouping | Increase depth | `depth: 5` |
+| Memory issues | Limit clusters | `maxClusters: 500` |
+| Unmasked variables | Custom preprocessing | Add patterns |
+
+Remember: The best settings depend on your specific log format and use case. Start with defaults and adjust based on results.
