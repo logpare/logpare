@@ -63,7 +63,7 @@ WARN [2024-01-15 10:25:18] Retry attempt 1/3 for request req-xyz789`,
   },
 };
 
-export default function PlaygroundPage() {
+export default function PlaygroundPage(): React.JSX.Element {
   const [selectedDataset, setSelectedDataset] = useState<keyof typeof DATASETS>('basic');
   const [options, setOptions] = useState({
     depth: 4,
@@ -159,7 +159,7 @@ export default result;
                 max="8"
                 value={options.depth}
                 onChange={(e) =>
-                  setOptions({ ...options, depth: parseInt(e.target.value) })
+                  setOptions({ ...options, depth: parseInt(e.target.value, 10) })
                 }
                 className="w-full"
               />
@@ -223,7 +223,7 @@ export default result;
                 code: JSON.stringify(
                   {
                     dependencies: {
-                      logpare: 'latest',
+                      logpare: '^0.0.5',
                     },
                   },
                   null,
@@ -241,7 +241,7 @@ export default result;
             }}
             customSetup={{
               dependencies: {
-                logpare: 'latest',
+                logpare: '^0.0.5',
               },
             }}
           />

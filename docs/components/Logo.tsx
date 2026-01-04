@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 
-export default function Logo(props: ComponentProps<'svg'>) {
+export default function Logo(props: ComponentProps<'svg'>): React.JSX.Element {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" {...props}>
       {/* Stacked log lines being compressed */}

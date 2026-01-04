@@ -164,8 +164,8 @@ function Features() {
           Features
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, idx) => (
-            <div key={idx} className="p-6 bg-fd-background rounded-lg border border-fd-border">
+          {features.map((feature) => (
+            <div key={feature.title} className="p-6 bg-fd-background rounded-lg border border-fd-border">
               <div className="text-3xl mb-4">{feature.icon}</div>
               <h3 className="font-mono font-semibold text-lg mb-2">{feature.title}</h3>
               <p className="font-sans text-fd-muted-foreground text-sm leading-relaxed">
@@ -273,7 +273,7 @@ function Footer() {
   );
 }
 
-export default function HomePage() {
+export default function HomePage(): React.JSX.Element {
   return (
     <>
       <Hero />
