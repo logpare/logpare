@@ -237,6 +237,56 @@ console.log(result.formatted);`}
   );
 }
 
+function SuccessStories() {
+  return (
+    <section className="py-20 px-8 bg-fd-secondary/30">
+      <div className="max-w-3xl mx-auto text-center">
+        <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-4">
+          Share Your Success Story
+        </h2>
+        <p className="text-lg text-fd-muted-foreground font-sans mb-8 leading-relaxed">
+          Using logpare for log compression, LLM context optimization, or debugging?
+          We'd love to hear how it's helped your workflow.
+        </p>
+        <div className="bg-fd-background rounded-lg border border-fd-border p-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-left">
+            <div>
+              <div className="text-2xl mb-2">📊</div>
+              <h3 className="font-mono font-semibold mb-1">Compression Results</h3>
+              <p className="text-sm text-fd-muted-foreground">
+                Share your token reduction ratios and cost savings
+              </p>
+            </div>
+            <div>
+              <div className="text-2xl mb-2">🔧</div>
+              <h3 className="font-mono font-semibold mb-1">Integration Stories</h3>
+              <p className="text-sm text-fd-muted-foreground">
+                How you integrated logpare into your workflow
+              </p>
+            </div>
+            <div>
+              <div className="text-2xl mb-2">💡</div>
+              <h3 className="font-mono font-semibold mb-1">Use Cases</h3>
+              <p className="text-sm text-fd-muted-foreground">
+                Creative ways you're using log compression
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://github.com/logpare/logpare/issues/new?template=success-story.yml"
+            className="inline-block px-6 py-3 font-sans font-semibold text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Submit Your Story
+          </a>
+          <p className="text-sm text-fd-muted-foreground mt-4">
+            Stories may be featured on our website with your permission
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   return (
     <footer className="py-12 px-8 bg-fd-card border-t border-fd-border">
@@ -282,6 +332,7 @@ export default function HomePage(): React.JSX.Element {
         <WhyIBuiltThis />
         <Features />
         <QuickStart />
+        <SuccessStories />
       </main>
       <Footer />
     </>
