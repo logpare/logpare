@@ -1,0 +1,89 @@
+name: Share Your Success Story
+description: Tell us how logpare helped with your log compression or analysis
+title: "[Success Story] "
+labels: ["success-story", "community"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing your success story! We love hearing how logpare is helping developers and teams.
+
+        Your story may be featured on our website (with your permission).
+
+  - type: input
+    id: name
+    attributes:
+      label: Your Name (or alias)
+      description: How should we credit you?
+      placeholder: "Jane Doe"
+    validations:
+      required: true
+
+  - type: input
+    id: role
+    attributes:
+      label: Role / Company (optional)
+      description: Your role or company name (leave blank if you prefer)
+      placeholder: "Senior SRE at Acme Corp"
+
+  - type: dropdown
+    id: use-case
+    attributes:
+      label: Primary Use Case
+      description: How are you primarily using logpare?
+      options:
+        - AI/LLM context optimization
+        - Log analysis and debugging
+        - Monitoring and alerting
+        - Cost reduction (token savings)
+        - CI/CD pipeline integration
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: story
+    attributes:
+      label: Your Story
+      description: Tell us about your experience with logpare
+      placeholder: |
+        Describe the problem you were facing, how logpare helped, and what results you achieved.
+
+        For example:
+        - What was the challenge?
+        - How did you integrate logpare?
+        - What improvements did you see?
+    validations:
+      required: true
+
+  - type: input
+    id: compression-ratio
+    attributes:
+      label: Compression Results (optional)
+      description: What compression ratios or token savings did you achieve?
+      placeholder: "e.g., 85% reduction, 50k lines to 200 templates"
+
+  - type: input
+    id: log-volume
+    attributes:
+      label: Log Volume (optional)
+      description: Approximate log volume you're processing
+      placeholder: "e.g., 1M lines/day, 500MB logs"
+
+  - type: textarea
+    id: quote
+    attributes:
+      label: Quotable Summary (optional)
+      description: A short quote we could use to highlight your story
+      placeholder: "logpare cut our Claude API costs by 60% while giving us better debugging context."
+
+  - type: checkboxes
+    id: permissions
+    attributes:
+      label: Permissions
+      description: Please confirm the following (check at least the first option if you'd like your story to be considered for featuring)
+      options:
+        - label: I give permission for this story to be featured on the logpare website
+          required: false
+        - label: I give permission to use my name/company in promotional materials
+          required: false
