@@ -81,7 +81,7 @@ body:
     id: permissions
     attributes:
       label: Permissions
-      description: Please confirm the following
+      description: Please confirm the following (check at least the first option if you'd like your story to be considered for featuring)
       options:
         - label: I give permission for this story to be featured on the logpare website
           required: false
