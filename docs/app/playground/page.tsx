@@ -222,6 +222,7 @@ export default result;
               '/package.json': {
                 code: JSON.stringify(
                   {
+                    main: 'App.js',
                     dependencies: {
                       logpare: '^0.0.5',
                     },
