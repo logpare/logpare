@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sandpack } from '@codesandbox/sandpack-react';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 
 const DEFAULT_LOGS = `ERROR Connection to 192.168.1.100 failed after 30s
 ERROR Connection to 192.168.1.101 failed after 25s
@@ -70,6 +71,13 @@ export default function PlaygroundPage(): React.JSX.Element {
     simThreshold: 0.4,
     format: 'summary' as 'summary' | 'detailed' | 'json',
   });
+  const [mounted, setMounted] = useState(false);
+  const { resolvedTheme } = useTheme();
+
+  // Avoid hydration mismatch by only rendering Sandpack on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const dataset = DATASETS[selectedDataset];
 
@@ -211,40 +219,51 @@ export default result;
 
         {/* Sandpack Editor */}
         <div className="rounded-lg overflow-hidden border border-fd-border">
-          <Sandpack
-            template="node"
-            theme="auto"
-            files={{
-              '/App.js': {
-                code: appCode,
-                active: true,
-              },
-              '/package.json': {
-                code: JSON.stringify(
-                  {
-                    dependencies: {
-                      logpare: '^0.0.5',
+          {mounted ? (
+            <Sandpack
+              key={selectedDataset}
+              template="node"
+              theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
+              files={{
+                '/index.js': {
+                  code: appCode,
+                  active: true,
+                },
+                '/package.json': {
+                  code: JSON.stringify(
+                    {
+                      main: 'index.js',
+                      scripts: {
+                        start: 'node index.js',
+                      },
+                      dependencies: {
+                        logpare: '^0.0.5',
+                      },
                     },
-                  },
-                  null,
-                  2
-                ),
-                hidden: true,
-              },
-            }}
-            options={{
-              showNavigator: false,
-              showTabs: false,
-              showLineNumbers: true,
-              editorHeight: 500,
-              editorWidthPercentage: 55,
-            }}
-            customSetup={{
-              dependencies: {
-                logpare: '^0.0.5',
-              },
-            }}
-          />
+                    null,
+                    2
+                  ),
+                  hidden: true,
+                },
+              }}
+              options={{
+                showNavigator: false,
+                showTabs: false,
+                showLineNumbers: true,
+                editorHeight: 500,
+                editorWidthPercentage: 55,
+              }}
+              customSetup={{
+                dependencies: {
+                  logpare: '^0.0.5',
+                },
+              }}
+            />
+          ) : (
+            <div className="h-[500px] flex items-center justify-center bg-fd-muted">
+              <span className="text-fd-muted-foreground">Loading editor...</span>
+            </div>
+          )}
         </div>
 
         <div className="mt-8 text-center text-sm text-fd-muted-foreground">

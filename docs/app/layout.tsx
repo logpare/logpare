@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: ReactNode }): React.JSX.Element {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="flex flex-col min-h-screen">
+      <body className="bg-ds-primary text-ds-primary flex flex-col min-h-screen">
         <RootProvider>{children}</RootProvider>
       </body>
     </html>
