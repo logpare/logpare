@@ -162,6 +162,8 @@ test/
 ├── drain.test.ts         # Core algorithm tests
 ├── preprocessing.test.ts # Pattern matching tests
 ├── api.test.ts           # Public API and fixture tests
+├── cli.test.ts           # CLI integration tests (ESM/CJS)
+├── compress.bench.ts     # Compression benchmarks
 └── fixtures/
     ├── hdfs.log          # Hadoop filesystem logs
     ├── spark.log         # Spark processing logs
