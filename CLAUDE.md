@@ -155,6 +155,55 @@ The codebase uses strict TypeScript settings including:
 3. Run `pnpm test` to run all tests
 4. Run `pnpm build` to generate dist/ output
 
+## Pull Request Workflow
+
+When work is complete and ready for review, create the PR directly using the GitHub CLI:
+
+1. **Always create PRs directly** - Use `gh pr create --title "..." --body "..."` to create the PR. Never just provide a link to `/pull/new/branch-name`.
+
+2. **Use conventional commit format for titles**:
+   - `feat:` - New features
+   - `fix:` - Bug fixes
+   - `docs:` - Documentation changes
+   - `refactor:` - Code refactoring
+   - `test:` - Test additions or changes
+   - `chore:` - Maintenance tasks
+
+3. **PR body format** - Include these sections:
+   ```
+   ## Summary
+   - Bullet point describing change 1
+   - Bullet point describing change 2
+   - (2-4 bullet points total)
+
+   ## Related Issues
+   Closes #123 (if applicable)
+
+   ## Test Plan
+   - Step to verify the changes work
+   - Additional verification steps
+   ```
+
+4. **After creating the PR** - Always report the actual PR URL returned by `gh pr create` so the user can access it directly.
+
+Example:
+```bash
+gh pr create --title "feat: add streaming compression API" --body "$(cat <<'EOF'
+## Summary
+- Add `compressStream()` function for processing large log files
+- Implement backpressure handling for memory efficiency
+- Add progress callback support for streaming operations
+
+## Related Issues
+Closes #42
+
+## Test Plan
+- Run `pnpm test` to verify all tests pass
+- Test with large log files (>100MB) to verify memory usage stays bounded
+EOF
+)"
+```
+
 ## Test Structure
 
 ```
