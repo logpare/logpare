@@ -26,24 +26,48 @@ function parseArgs(): MCPServerConfig & { test?: boolean } {
         break;
 
       case '--format':
-      case '-f':
-        config.defaultFormat = args[++i] as 'summary' | 'detailed' | 'json';
+      case '-f': {
+        const nextArg = args[++i];
+        if (nextArg === undefined || nextArg.startsWith('-')) {
+          console.error(`Option ${arg} requires a value`);
+          process.exit(1);
+        }
+        config.defaultFormat = nextArg as 'summary' | 'detailed' | 'json';
         break;
+      }
 
       case '--depth':
-      case '-d':
-        config.defaultDepth = parseInt(args[++i] ?? '4', 10);
+      case '-d': {
+        const nextArg = args[++i];
+        if (nextArg === undefined || nextArg.startsWith('-')) {
+          console.error(`Option ${arg} requires a value`);
+          process.exit(1);
+        }
+        config.defaultDepth = parseInt(nextArg, 10);
         break;
+      }
 
       case '--threshold':
-      case '-t':
-        config.defaultSimThreshold = parseFloat(args[++i] ?? '0.4');
+      case '-t': {
+        const nextArg = args[++i];
+        if (nextArg === undefined || nextArg.startsWith('-')) {
+          console.error(`Option ${arg} requires a value`);
+          process.exit(1);
+        }
+        config.defaultSimThreshold = parseFloat(nextArg);
         break;
+      }
 
       case '--max-lines':
-      case '-m':
-        config.maxLinesPerRequest = parseInt(args[++i] ?? '100000', 10);
+      case '-m': {
+        const nextArg = args[++i];
+        if (nextArg === undefined || nextArg.startsWith('-')) {
+          console.error(`Option ${arg} requires a value`);
+          process.exit(1);
+        }
+        config.maxLinesPerRequest = parseInt(nextArg, 10);
         break;
+      }
 
       case '--test':
         config.test = true;

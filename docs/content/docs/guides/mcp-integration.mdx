@@ -24,11 +24,13 @@ logpare provides an MCP server that exposes log compression capabilities as tool
 |--------|-----------|-----------------|
 | Claude Desktop | stdio | `claude_desktop_config.json` |
 | Claude Code (CLI) | stdio | `~/.claude.json` |
-| Cursor | stdio/HTTP | `~/.cursor/mcp.json` |
-| VS Code + Copilot | stdio/HTTP | `.vscode/mcp.json` |
-| Windsurf | stdio/HTTP | `~/.codeium/windsurf/mcp_config.json` |
-| ChatGPT | HTTP | Settings → Connectors |
-| Gemini | HTTP | `~/.config/gcloud/mcp-config.json` |
+| Cursor | stdio | `~/.cursor/mcp.json` |
+| VS Code + Copilot | stdio | `.vscode/mcp.json` |
+| Windsurf | stdio | `~/.codeium/windsurf/mcp_config.json` |
+| ChatGPT | HTTP* | Settings → Connectors |
+| Gemini | stdio | `~/.config/gcloud/mcp-config.json` |
+
+> **Note**: @logpare/mcp currently supports **stdio transport only**. Clients marked with * require hosting the MCP server with an HTTP adapter.
 
 ---
 

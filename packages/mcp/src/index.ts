@@ -959,11 +959,12 @@ function handleUCPTool(
   }
 
   // UCP-specific preprocessing patterns
+  // Note: Using /gi (case-insensitive) without global flag to avoid test() state issues
   const UCP_PATTERNS = {
     checkoutSessionId: /\bcs_[a-zA-Z0-9]{20,}\b/gi,
     paymentHandler: /\bph_[a-zA-Z0-9]{16,}\b/gi,
-    errorCode: /\b(MERCHANDISE_NOT_AVAILABLE|INVALID_CURRENCY|CHECKOUT_EXPIRED|PAYMENT_DECLINED|INVENTORY_UNAVAILABLE)\b/g,
-    checkoutStatus: /\b(incomplete|requires_escalation|ready_for_complete|complete_in_progress|completed|canceled)\b/g,
+    errorCode: /\b(MERCHANDISE_NOT_AVAILABLE|INVALID_CURRENCY|CHECKOUT_EXPIRED|PAYMENT_DECLINED|INVENTORY_UNAVAILABLE)\b/i,
+    checkoutStatus: /\b(incomplete|requires_escalation|ready_for_complete|complete_in_progress|completed|canceled)\b/gi,
   };
 
   switch (name) {

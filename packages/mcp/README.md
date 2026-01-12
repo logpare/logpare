@@ -3,7 +3,7 @@
 MCP (Model Context Protocol) server for logpare, enabling AI agents to compress and analyze logs.
 
 <a href="https://ucp.dev" target="_blank" rel="noopener noreferrer" title="Universal Commerce Protocol Compatible">
-  <img src="https://img.shields.io/badge/UCP-Ready-blue?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMkwyIDdsOTAgNSAxMC01LTEwLTV6IiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+" alt="UCP Ready">
+  <img src="https://img.shields.io/badge/UCP-Ready-blue?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMkwyIDdsMTAgNSAxMC01LTEwLTV6IiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+" alt="UCP Ready">
 </a>
 
 ## Installation
