@@ -197,6 +197,27 @@ describe('CLI Integration Tests', () => {
       expect(exitCode).toBe(1);
       expect(stderr).toContain('Invalid threshold');
     });
+
+    it('should error on invalid max-children', () => {
+      const testFile = resolve(FIXTURES, 'hdfs.log');
+      const { stderr, exitCode } = runCli(['--max-children', 'abc', testFile]);
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain('Invalid max-children');
+    });
+
+    it('should error on invalid max-clusters', () => {
+      const testFile = resolve(FIXTURES, 'hdfs.log');
+      const { stderr, exitCode } = runCli(['--max-clusters', 'xyz', testFile]);
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain('Invalid max-clusters');
+    });
+
+    it('should error on invalid max-templates', () => {
+      const testFile = resolve(FIXTURES, 'hdfs.log');
+      const { stderr, exitCode } = runCli(['--max-templates', '0', testFile]);
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain('Invalid max-templates');
+    });
   });
 
   describe('CJS CLI (dist/cli.cjs)', () => {
