@@ -46,18 +46,23 @@ interface Template {
 }
 ```
 
-### Existing MCP Server Pattern
+### Existing MCP Server Status
 
-Logpare has a documented MCP server development skill (`.claude/skills/mcp-server-development/SKILL.md`) with:
+**Current state**: Documentation and patterns exist, but no implementation yet.
 
-**Proposed Tools**:
+| Asset | Location | Status |
+|-------|----------|--------|
+| User guide | `docs/content/docs/guides/mcp-integration.mdx` | Documentation only |
+| Dev patterns | `.cursor/rules/030-mcp-server.mdc` | Cursor rules (stdio only) |
+| Package | `@logpare/mcp` (npm) | **Not yet published** |
+| Source code | `packages/mcp/` | **Does not exist** |
+
+**Documented tools** (planned, not implemented):
 - `compress_logs` - Compress log lines array
-- `compress_file` - Compress log file from filesystem
-- `analyze_templates` - Detailed template analysis
+- `analyze_log_patterns` - Quick pattern extraction
+- `estimate_compression` - Compression ratio estimate
 
-**Proposed Resources**:
-- `compression://results/{id}` - Past compression results
-- `compression://templates/{id}` - Template details
+**Transport**: Documentation shows **stdio only** (Claude Desktop pattern), no HTTP transport.
 
 ---
 
