@@ -12,8 +12,11 @@ import {
   ListToolsRequestSchema,
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
   type Tool,
   type Resource,
+  type Prompt,
 } from '@modelcontextprotocol/sdk/types.js';
 import { compress, compressText, createDrain, type CompressOptions, type DrainOptions } from 'logpare';
 
@@ -218,6 +221,87 @@ const CORE_RESOURCES: Resource[] = [
 ];
 
 /**
+ * Prompt definitions - reusable templates for common log analysis workflows
+ */
+const CORE_PROMPTS: Prompt[] = [
+  {
+    name: 'analyze_errors',
+    description: 'Analyze logs to identify error patterns, root causes, and suggest fixes',
+    arguments: [
+      {
+        name: 'logs',
+        description: 'The log content to analyze',
+        required: true,
+      },
+      {
+        name: 'context',
+        description: 'Additional context about the system or issue',
+        required: false,
+      },
+    ],
+  },
+  {
+    name: 'compare_logs',
+    description: 'Compare two sets of logs to identify differences, new patterns, and changes',
+    arguments: [
+      {
+        name: 'before_logs',
+        description: 'Logs from before the change or issue',
+        required: true,
+      },
+      {
+        name: 'after_logs',
+        description: 'Logs from after the change or issue',
+        required: true,
+      },
+    ],
+  },
+  {
+    name: 'debug_performance',
+    description: 'Analyze logs to find performance bottlenecks and slow operations',
+    arguments: [
+      {
+        name: 'logs',
+        description: 'The log content to analyze for performance issues',
+        required: true,
+      },
+      {
+        name: 'threshold_ms',
+        description: 'Duration threshold in milliseconds to flag as slow (default: 1000)',
+        required: false,
+      },
+    ],
+  },
+  {
+    name: 'incident_triage',
+    description: 'Triage an incident by analyzing logs for timeline, impact, and root cause',
+    arguments: [
+      {
+        name: 'logs',
+        description: 'Logs from the incident timeframe',
+        required: true,
+      },
+      {
+        name: 'incident_description',
+        description: 'Brief description of the incident',
+        required: false,
+      },
+    ],
+  },
+  {
+    name: 'security_audit',
+    description: 'Scan logs for security-related events, suspicious patterns, and anomalies',
+    arguments: [
+      {
+        name: 'logs',
+        description: 'Logs to audit for security issues',
+        required: true,
+      },
+    ],
+  },
+];
+
+/**
  * Create and configure an MCP server for logpare
  */
 export function createServer(config: MCPServerConfig = {}): Server {
@@ -232,20 +316,24 @@ export function createServer(config: MCPServerConfig = {}): Server {
       capabilities: {
         tools: {},
         resources: {},
+        prompts: {},
       },
     }
   );
 
-  // Collect tools (core + UCP if enabled)
+  // Collect tools, resources, and prompts (core + UCP if enabled)
   let tools = [...CORE_TOOLS];
   let resources = [...CORE_RESOURCES];
+  let prompts = [...CORE_PROMPTS];
 
-  // Add UCP tools if enabled
+  // Add UCP tools, resources, and prompts if enabled
   if (config.ucp?.enabled) {
     const ucpTools = getUCPTools();
     const ucpResources = getUCPResources();
+    const ucpPrompts = getUCPPrompts();
     tools = [...tools, ...ucpTools];
     resources = [...resources, ...ucpResources];
+    prompts = [...prompts, ...ucpPrompts];
   }
 
   // List tools handler
@@ -411,6 +499,189 @@ export function createServer(config: MCPServerConfig = {}): Server {
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({
     resources,
   }));
+
+  // List prompts handler
+  server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+    prompts,
+  }));
+
+  // Get prompt handler
+  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    const promptTemplates: Record<string, (args: Record<string, string>) => { messages: Array<{ role: string; content: { type: string; text: string } }> }> = {
+      analyze_errors: (a) => ({
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: `Analyze the following logs to identify error patterns, determine root causes, and suggest fixes.
+
+${a.context ? `Context: ${a.context}\n\n` : ''}Logs:
+${a.logs}
+
+Please:
+1. First, use the compress_logs tool to identify patterns
+2. Focus on ERROR and WARNING level messages
+3. Group related errors by root cause
+4. Provide specific, actionable recommendations
+5. Highlight any critical issues that need immediate attention`,
+            },
+          },
+        ],
+      }),
+
+      compare_logs: (a) => ({
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: `Compare these two sets of logs to identify what changed.
+
+BEFORE:
+${a.before_logs}
+
+AFTER:
+${a.after_logs}
+
+Please:
+1. Use compress_logs on both sets to extract patterns
+2. Identify new patterns that appeared
+3. Identify patterns that disappeared
+4. Note any significant frequency changes
+5. Highlight potential causes for the differences`,
+            },
+          },
+        ],
+      }),
+
+      debug_performance: (a) => ({
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: `Analyze these logs to find performance bottlenecks and slow operations.
+
+${a.threshold_ms ? `Flag operations slower than: ${a.threshold_ms}ms\n\n` : ''}Logs:
+${a.logs}
+
+Please:
+1. Use compress_logs with format='detailed' to extract timing data
+2. Look at durationSamples in the templates
+3. Identify the slowest operations and their patterns
+4. Find any timing anomalies or outliers
+5. Suggest specific optimizations`,
+            },
+          },
+        ],
+      }),
+
+      incident_triage: (a) => ({
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: `Triage this incident by analyzing the logs.
+
+${a.incident_description ? `Incident: ${a.incident_description}\n\n` : ''}Logs:
+${a.logs}
+
+Please:
+1. Establish a timeline of events
+2. Identify the initial trigger or root cause
+3. Determine the blast radius and affected components
+4. Find any error cascades or secondary failures
+5. Provide a summary suitable for an incident report`,
+            },
+          },
+        ],
+      }),
+
+      security_audit: (a) => ({
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: `Audit these logs for security-related events and suspicious patterns.
+
+Logs:
+${a.logs}
+
+Please:
+1. Look for authentication failures and anomalies
+2. Check for unauthorized access attempts
+3. Identify any injection attempts or malformed requests
+4. Flag unusual IP addresses or user agents
+5. Note any privilege escalation or sensitive data access
+6. Provide a security risk summary`,
+            },
+          },
+        ],
+      }),
+
+      // UCP prompts
+      debug_checkout: (a) => ({
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: `Debug this UCP checkout session.
+
+${a.session_id ? `Session ID: ${a.session_id}\n\n` : ''}Logs:
+${a.logs}
+
+Please:
+1. Use compress_checkout_logs to analyze the session
+2. Track the checkout status flow
+3. Identify any errors or failures
+4. Check payment handler interactions
+5. Suggest resolutions for any issues found`,
+            },
+          },
+        ],
+      }),
+
+      analyze_agent_flow: (a) => ({
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: `Analyze this multi-agent commerce flow.
+
+Logs:
+${a.logs}
+
+Please:
+1. Use compress_a2a_logs to identify agent interactions
+2. Map the flow between agents
+3. Identify any handoff failures or delays
+4. Check for coordination issues
+5. Suggest improvements to the agent workflow`,
+            },
+          },
+        ],
+      }),
+    };
+
+    const template = promptTemplates[name];
+    if (!template) {
+      throw new Error(`Unknown prompt: ${name}`);
+    }
+
+    // Check for UCP-specific prompts
+    if ((name === 'debug_checkout' || name === 'analyze_agent_flow') && !config.ucp?.enabled) {
+      throw new Error(`UCP prompt "${name}" requires UCP extension to be enabled`);
+    }
+
+    return template(args as Record<string, string>);
+  });
 
   // Read resource handler
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
@@ -640,6 +911,38 @@ function getUCPResources(): Resource[] {
       name: 'UCP Error Codes Reference',
       description: 'Common UCP error patterns and their meanings',
       mimeType: 'application/json',
+    },
+  ];
+}
+
+function getUCPPrompts(): Prompt[] {
+  return [
+    {
+      name: 'debug_checkout',
+      description: 'Debug a UCP checkout session by analyzing logs for errors, status flow, and payment issues',
+      arguments: [
+        {
+          name: 'logs',
+          description: 'Checkout session logs to analyze',
+          required: true,
+        },
+        {
+          name: 'session_id',
+          description: 'Optional checkout session ID (cs_*) to focus on',
+          required: false,
+        },
+      ],
+    },
+    {
+      name: 'analyze_agent_flow',
+      description: 'Analyze a multi-agent commerce flow to identify coordination issues and handoff failures',
+      arguments: [
+        {
+          name: 'logs',
+          description: 'Agent-to-Agent communication logs',
+          required: true,
+        },
+      ],
     },
   ];
 }
