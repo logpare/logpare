@@ -14,6 +14,16 @@ export const metadata: Metadata = {
       ? `https://${process.env.VERCEL_URL}`
       : 'https://logpare.com'
   ),
+  manifest: '/site.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
   openGraph: {
     title: 'logpare - Semantic Log Compression',
     description: 'Semantic log compression for LLM context windows. Reduce log tokens by 60-90% while preserving diagnostic information.',
