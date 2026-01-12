@@ -2,6 +2,7 @@
   "name": "logpare",
   "short_name": "logpare",
   "description": "Semantic log compression for LLM context windows",
+  "start_url": "/",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
