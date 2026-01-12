@@ -32,6 +32,11 @@ function parseArgs(): MCPServerConfig & { test?: boolean } {
           console.error(`Option ${arg} requires a value`);
           process.exit(1);
         }
+        const validFormats = ['summary', 'detailed', 'json'];
+        if (!validFormats.includes(nextArg)) {
+          console.error(`Invalid format: ${nextArg}. Must be one of: ${validFormats.join(', ')}`);
+          process.exit(1);
+        }
         config.defaultFormat = nextArg as 'summary' | 'detailed' | 'json';
         break;
       }
@@ -43,7 +48,12 @@ function parseArgs(): MCPServerConfig & { test?: boolean } {
           console.error(`Option ${arg} requires a value`);
           process.exit(1);
         }
-        config.defaultDepth = parseInt(nextArg, 10);
+        const depth = parseInt(nextArg, 10);
+        if (Number.isNaN(depth)) {
+          console.error(`Option ${arg} requires a numeric value`);
+          process.exit(1);
+        }
+        config.defaultDepth = depth;
         break;
       }
 
@@ -54,7 +64,12 @@ function parseArgs(): MCPServerConfig & { test?: boolean } {
           console.error(`Option ${arg} requires a value`);
           process.exit(1);
         }
-        config.defaultSimThreshold = parseFloat(nextArg);
+        const threshold = parseFloat(nextArg);
+        if (Number.isNaN(threshold)) {
+          console.error(`Option ${arg} requires a numeric value`);
+          process.exit(1);
+        }
+        config.defaultSimThreshold = threshold;
         break;
       }
 
@@ -65,7 +80,12 @@ function parseArgs(): MCPServerConfig & { test?: boolean } {
           console.error(`Option ${arg} requires a value`);
           process.exit(1);
         }
-        config.maxLinesPerRequest = parseInt(nextArg, 10);
+        const maxLines = parseInt(nextArg, 10);
+        if (Number.isNaN(maxLines)) {
+          console.error(`Option ${arg} requires a numeric value`);
+          process.exit(1);
+        }
+        config.maxLinesPerRequest = maxLines;
         break;
       }
 
@@ -134,8 +154,10 @@ For more information, visit: https://logpare.com/docs/guides/mcp-integration
 `);
 }
 
+declare const __VERSION__: string;
+
 function printVersion(): void {
-  console.log('@logpare/mcp v0.1.0');
+  console.log(`@logpare/mcp v${__VERSION__}`);
 }
 
 async function runTest(): Promise<void> {
@@ -159,11 +181,11 @@ async function runTest(): Promise<void> {
 
   // Test MCP server creation
   const { createServer } = await import('./index.js');
-  const server = createServer();
+  void createServer();
   console.log('✓ MCP server created successfully');
 
   // Test UCP extension
-  const ucpServer = createServer({ ucp: { enabled: true } });
+  void createServer({ ucp: { enabled: true } });
   console.log('✓ UCP extension loaded successfully');
 
   console.log('\n✓ All tests passed!');

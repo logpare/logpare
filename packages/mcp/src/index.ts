@@ -18,7 +18,7 @@ import {
   type Resource,
   type Prompt,
 } from '@modelcontextprotocol/sdk/types.js';
-import { compress, compressText, createDrain, type CompressOptions, type DrainOptions } from 'logpare';
+import { compress, compressText, type CompressOptions } from 'logpare';
 
 // Optional UCP extension support
 import type { UCPExtensionConfig } from './ucp/types.js';
@@ -415,7 +415,7 @@ export function createServer(config: MCPServerConfig = {}): Server {
           });
 
           // Return just patterns with counts
-          const patterns = result.templates.map((t) => ({
+          const patterns = result.templates.map((t: { pattern: string; occurrences: number; severity: string }) => ({
             pattern: t.pattern,
             count: t.occurrences,
             severity: t.severity,
@@ -508,6 +508,19 @@ export function createServer(config: MCPServerConfig = {}): Server {
   // Get prompt handler
   server.setRequestHandler(GetPromptRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+
+    // Validate args exist
+    const promptArgs = args ?? {};
+
+    // Find prompt definition to check required args
+    const promptDef = prompts.find((p) => p.name === name);
+    if (promptDef) {
+      for (const arg of promptDef.arguments ?? []) {
+        if (arg.required && !promptArgs[arg.name]) {
+          throw new Error(`Missing required argument: ${arg.name}`);
+        }
+      }
+    }
 
     const promptTemplates: Record<string, (args: Record<string, string>) => { messages: Array<{ role: string; content: { type: string; text: string } }> }> = {
       analyze_errors: (a) => ({
@@ -680,7 +693,7 @@ Please:
       throw new Error(`UCP prompt "${name}" requires UCP extension to be enabled`);
     }
 
-    return template(args as Record<string, string>);
+    return template(promptArgs as Record<string, string>);
   });
 
   // Read resource handler
