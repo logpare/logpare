@@ -17,8 +17,8 @@ export default {
       },
       colors: {
         brand: {
-          lime: '#c8ff00',
-          'lime-dim': '#a3cc00',
+          teal: '#14b8a6',
+          'teal-dim': '#0d9488',
           dark: '#0a0a0a',
         },
       },
