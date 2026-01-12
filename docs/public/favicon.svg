@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Teal background -->
+  <rect width="32" height="32" rx="6" fill="#14b8a6"/>
+  <!-- Stacked log lines (black, simplified for small sizes) -->
+  <rect x="5" y="7" width="22" height="3" rx="1" fill="#0a0a0a"/>
+  <rect x="7" y="12" width="18" height="3" rx="1" fill="#0a0a0a" opacity="0.85"/>
+  <rect x="9" y="17" width="14" height="3" rx="1" fill="#0a0a0a" opacity="0.65"/>
+  <rect x="11" y="22" width="10" height="3" rx="1" fill="#0a0a0a" opacity="0.45"/>
+</svg>
