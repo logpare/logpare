@@ -3,7 +3,11 @@ title: MCP Integration
 description: Integrate logpare with AI coding assistants via the Model Context Protocol
 ---
 
+import { UCPBadge } from '@/components/ucp-badge'
+
 Learn how to integrate logpare with AI coding assistants via the Model Context Protocol (MCP).
+
+<UCPBadge />
 
 ## Overview
 
@@ -81,6 +85,21 @@ Edit `~/.config/Claude/claude_desktop_config.json`:
 }
 ```
 
+### With UCP Extension
+
+Enable [UCP (Universal Commerce Protocol)](https://ucp.dev) tools for agentic commerce log processing:
+
+```json
+{
+  "mcpServers": {
+    "logpare": {
+      "command": "npx",
+      "args": ["@logpare/mcp", "--ucp"]
+    }
+  }
+}
+```
+
 ### Verify Installation
 
 Restart Claude Desktop and check that the logpare tools are available:
@@ -88,7 +107,7 @@ Restart Claude Desktop and check that the logpare tools are available:
 1. Open Claude Desktop
 2. Start a new conversation
 3. Type `/tools` to see available tools
-4. Look for `compress_logs`, `analyze_log_patterns`, etc.
+4. Look for `compress_logs`, `analyze_patterns`, etc.
 
 ## Available Tools
 
@@ -120,7 +139,7 @@ Claude: I'll use the logpare MCP tool to compress those logs.
 Here's the compressed output showing 15 unique templates...
 ```
 
-### analyze_log_patterns
+### analyze_patterns
 
 Extract patterns without full compression (faster for quick analysis).
 
@@ -143,6 +162,54 @@ Quick estimate of compression ratio without full processing.
 {
   lines: string[];
   sampleSize?: number;       // Default: 1000
+}
+```
+
+## UCP Tools
+
+When running with the `--ucp` flag, additional tools are available for [Universal Commerce Protocol](https://ucp.dev) log processing.
+
+### compress_checkout_logs
+
+Compress UCP checkout session logs while preserving diagnostic context including session IDs, status transitions, error codes, and payment handler interactions.
+
+**Parameters:**
+
+```typescript
+{
+  lines: string[];           // Log lines from UCP checkout session
+  session_id?: string;       // Filter logs by checkout session ID (cs_*)
+  preserve_errors?: boolean; // Keep errors uncompressed (default: true)
+  format?: 'summary' | 'detailed' | 'json' | 'ucp_json';
+}
+```
+
+### analyze_checkout_errors
+
+Analyze patterns in UCP checkout errors, group by root cause, and suggest resolutions based on UCP error code taxonomy.
+
+**Parameters:**
+
+```typescript
+{
+  lines: string[];           // Error logs from UCP checkout sessions
+  include_suggestions?: boolean; // Include resolution suggestions (default: true)
+  group_by?: 'error_code' | 'severity' | 'session' | 'time';
+}
+```
+
+### compress_a2a_logs
+
+Compress Agent-to-Agent (A2A) communication logs from UCP multi-agent commerce flows.
+
+**Parameters:**
+
+```typescript
+{
+  lines: string[];           // A2A communication logs
+  group_by_agent?: boolean;  // Group templates by agent ID
+  preserve_handoffs?: boolean; // Keep handoff events uncompressed
+  trace_id?: string;         // Filter by distributed trace ID
 }
 ```
 
