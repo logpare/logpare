@@ -80,7 +80,12 @@
 	/* Brand Colors */
 	--brand-teal: #14b8a6;
 	--brand-teal-dim: #0d9488;
+	--brand-teal-rgb: 20, 184, 166; /* For rgba() usage */
 	--brand-dark: #0a0a0a;
+
+	/* UCP Colors */
+	--ucp-blue: #3b82f6;
+	--ucp-blue-light: #60a5fa;
 }
 
 /* ============================================
@@ -93,12 +98,12 @@
 	--bg-secondary: #f4f4f5;
 	--bg-tertiary: #e4e4e7;
 	--bg-hover: #d4d4d8;
-	--bg-accent-subtle: rgba(20, 184, 166, 0.15);
+	--bg-accent-subtle: rgba(var(--brand-teal-rgb), 0.15);
 
 	--text-primary: #09090b;
 	--text-secondary: #52525b;
 	--text-muted: #71717a;
-	--text-accent: #0d9488;
+	--text-accent: var(--brand-teal-dim);
 
 	--border-default: #e4e4e7;
 	--border-strong: #d4d4d8;
@@ -121,12 +126,12 @@
 	--bg-secondary: #111111;
 	--bg-tertiary: #1a1a1a;
 	--bg-hover: #222222;
-	--bg-accent-subtle: rgba(20, 184, 166, 0.1);
+	--bg-accent-subtle: rgba(var(--brand-teal-rgb), 0.1);
 
 	--text-primary: #fafafa;
 	--text-secondary: #a1a1aa;
 	--text-muted: #71717a;
-	--text-accent: #2dd4bf;
+	--text-accent: var(--brand-teal);
 
 	--border-default: #27272a;
 	--border-strong: #3f3f46;
@@ -410,7 +415,7 @@ html {
 	font-weight: 500;
 	letter-spacing: var(--tracking-wide);
 	text-transform: uppercase;
-	color: #3b82f6;
+	color: var(--ucp-blue);
 	background: rgba(59, 130, 246, 0.1);
 	border: 1px solid rgba(59, 130, 246, 0.3);
 	border-radius: var(--radius-full);
@@ -432,7 +437,7 @@ html {
 /* Dark mode UCP badge */
 .dark .ucp-badge,
 [data-theme='midnight'] .ucp-badge {
-	color: #60a5fa;
+	color: var(--ucp-blue-light);
 	background: rgba(96, 165, 250, 0.1);
 	border-color: rgba(96, 165, 250, 0.3);
 }
@@ -465,12 +470,12 @@ html {
 	font-family: var(--font-sans);
 	font-size: var(--text-lg);
 	font-weight: 600;
-	color: #3b82f6;
+	color: var(--ucp-blue);
 	margin: 0;
 }
 
 .ucp-feature-card-icon {
-	color: #3b82f6;
+	color: var(--ucp-blue);
 }
 
 .ucp-feature-card p {
@@ -482,7 +487,7 @@ html {
 }
 
 .ucp-feature-card p a {
-	color: #3b82f6;
+	color: var(--ucp-blue);
 	text-decoration: underline;
 }
 
@@ -506,7 +511,7 @@ html {
 
 .ucp-feature-card li::before {
 	content: '✓';
-	color: #3b82f6;
+	color: var(--ucp-blue);
 	font-weight: 600;
 }
 
@@ -518,20 +523,20 @@ html {
 
 .dark .ucp-feature-card-header h3,
 [data-theme='midnight'] .ucp-feature-card-header h3 {
-	color: #60a5fa;
+	color: var(--ucp-blue-light);
 }
 
 .dark .ucp-feature-card-icon,
 [data-theme='midnight'] .ucp-feature-card-icon {
-	color: #60a5fa;
+	color: var(--ucp-blue-light);
 }
 
 .dark .ucp-feature-card p a,
 [data-theme='midnight'] .ucp-feature-card p a {
-	color: #60a5fa;
+	color: var(--ucp-blue-light);
 }
 
 .dark .ucp-feature-card li::before,
 [data-theme='midnight'] .ucp-feature-card li::before {
-	color: #60a5fa;
+	color: var(--ucp-blue-light);
 }
