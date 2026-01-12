@@ -57,13 +57,16 @@ async function main() {
   try {
     // Dynamic import to handle missing dependency gracefully
     sharp = (await import('sharp')).default;
-  } catch (e) {
+  } catch (err) {
     console.error('Error: sharp is required to generate PNG favicons.');
     console.error('Install it with: pnpm add -D sharp');
     console.error('');
     console.error('Alternatively, convert the SVG files manually:');
     console.error('  - public/favicon.svg (32x32)');
     console.error('  - public/icon.svg (512x512)');
+    if (err?.code !== 'ERR_MODULE_NOT_FOUND') {
+      console.error('\nOriginal error:', err);
+    }
     process.exit(1);
   }
 
@@ -89,4 +92,7 @@ async function main() {
   console.log('\nDone! PNG favicons generated in docs/public/');
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
