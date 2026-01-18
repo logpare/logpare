@@ -33,24 +33,26 @@
     "ucp",
     "ucp-ready"
   ],
-  "author": "",
+  "author": "Jeff Green <contact@hirejeffgreen.com>",
   "license": "MIT",
+  "homepage": "https://github.com/logpare/logpare/tree/main/packages/mcp",
+  "bugs": {
+    "url": "https://github.com/logpare/logpare/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/logpare/logpare",
     "directory": "packages/mcp"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.2"
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "logpare": "workspace:^",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
-    "logpare": "workspace:*",
     "tsup": "^8.0.0",
     "typescript": "^5.3.3",
     "vitest": "^1.0.0"
-  },
-  "peerDependencies": {
-    "logpare": ">=0.1.0"
   }
 }
