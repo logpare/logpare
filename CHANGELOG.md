@@ -42,18 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `createDrain()` for advanced incremental processing
-- `defineStrategy()` for custom preprocessing strategies
-- Three output formats: `summary`, `detailed`, and `json`
-
-## [0.0.1] - 2025-12-18
-
-### Added
-
 - Initial release of logpare
 - Core Drain algorithm implementation for log template extraction
 - `compress()` and `compressText()` functions
+- `createDrain()` for advanced incremental processing
+- `defineStrategy()` for custom preprocessing strategies
 - Built-in patterns for common variable types (IPv4/IPv6, UUIDs, timestamps, etc.)
+- Three output formats: `summary`, `detailed`, and `json`
 - V8-optimized implementation using `Map` for tree nodes
 - Dual ESM/CJS build output
 - Full TypeScript type definitions
