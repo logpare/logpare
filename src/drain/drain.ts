@@ -197,8 +197,10 @@ export class Drain {
 
     let currentNode = lengthNode.getChild(navToken);
 
-    // Try wildcard child if exact match not found
-    if (currentNode === undefined) {
+    // Only use wildcard fallback for primary search (startIndex=0).
+    // For alternate token searches, wildcard path is already covered by
+    // primary search and would have misaligned traversal indices.
+    if (currentNode === undefined && startIndex === 0) {
       currentNode = lengthNode.getChild(WILDCARD_KEY);
     }
 

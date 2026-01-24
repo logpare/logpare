@@ -47,13 +47,15 @@ describe('Parsing Accuracy', () => {
     const groundTruth: GroundTruthEntry[] = [];
     const predictions: PredictionEntry[] = [];
 
+    // Precompute template map to avoid O(n²) lookups
+    const templates = drain.getTemplates();
+    const templateById = new Map(templates.map((t) => [t.id, t]));
+
     for (const entry of fixture.entries) {
       const clusterId = lineToCluster.get(entry.lineNumber);
       if (!clusterId) continue;
 
-      // Find the template pattern for this cluster
-      const templates = drain.getTemplates();
-      const template = templates.find((t) => t.id === clusterId);
+      const template = templateById.get(clusterId);
       if (!template) continue;
 
       groundTruth.push({

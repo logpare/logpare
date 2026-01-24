@@ -129,14 +129,12 @@ export function calculateParsingAccuracy(
 
 /**
  * Normalize a template for comparison.
- * - Collapse multiple wildcards
  * - Normalize whitespace
  * - Lowercase for case-insensitive comparison
  */
 export function normalizeTemplate(template: string): string {
   return template
-    .replace(/<\*>/g, '<*>') // Normalize wildcard syntax
-    .replace(/\s+/g, ' ')     // Collapse whitespace
+    .replace(/\s+/g, ' ') // Collapse whitespace
     .trim()
     .toLowerCase();
 }
