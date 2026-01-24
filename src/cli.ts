@@ -16,7 +16,7 @@ USAGE:
   cat logs.txt | logpare [options]
 
 OPTIONS:
-  -f, --format <fmt>      Output format: summary, detailed, json (default: summary)
+  -f, --format <fmt>      Output format: summary, detailed, json, json-stable (default: summary)
   -o, --output <file>     Write output to file instead of stdout
   -d, --depth <n>         Parse tree depth (default: 4)
   -t, --threshold <n>     Similarity threshold 0.0-1.0 (default: 0.4)
@@ -70,9 +70,9 @@ function parseCliArgs(): ParsedArgs {
   });
 
   const format = values.format as string;
-  if (!["summary", "detailed", "json"].includes(format)) {
+  if (!["summary", "detailed", "json", "json-stable"].includes(format)) {
     console.error(
-      `Error: Invalid format "${format}". Use: summary, detailed, json`
+      `Error: Invalid format "${format}". Use: summary, detailed, json, json-stable`
     );
     process.exit(1);
   }
@@ -190,14 +190,9 @@ function main(): void {
 
   const result = compressText(input, options);
 
-  const output =
-    args.format === "json"
-      ? JSON.stringify(
-          { templates: result.templates, stats: result.stats },
-          null,
-          2
-        )
-      : result.formatted;
+  // For JSON formats, use the pre-formatted output from the result
+  // which properly handles json-stable's sorted keys and compact format
+  const output = result.formatted;
 
   if (args.output) {
     writeFileSync(args.output, output, "utf-8");
