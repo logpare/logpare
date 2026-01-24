@@ -216,8 +216,10 @@ export function calculateF1GroupingAccuracy(
 /**
  * Calculate F1 Parsing Accuracy (F1-PA).
  *
- * For each ground truth template, check if there's a predicted template
- * with an exact match. Uses precision/recall at the template level.
+ * True F1 score at the template level:
+ * - Precision: fraction of predicted templates that match ground truth
+ * - Recall: fraction of ground truth templates found in predictions
+ * - F1 = 2 * precision * recall / (precision + recall)
  */
 export function calculateF1ParsingAccuracy(
   groundTruth: GroundTruthEntry[],
@@ -227,36 +229,33 @@ export function calculateF1ParsingAccuracy(
     return 0;
   }
 
-  // Get unique ground truth templates
-  const gtTemplates = new Map<string, { template: string; count: number }>();
+  // Get unique ground truth templates (normalized)
+  const gtTemplates = new Set<string>();
   for (const entry of groundTruth) {
-    const existing = gtTemplates.get(entry.templateId);
-    if (existing) {
-      existing.count++;
-    } else {
-      gtTemplates.set(entry.templateId, { template: entry.template, count: 1 });
-    }
+    if (!entry) continue;
+    gtTemplates.add(normalizeTemplate(entry.template));
   }
 
-  // Get unique predicted templates
+  // Get unique predicted templates (normalized)
   const predTemplates = new Set<string>();
   for (const entry of predictions) {
+    if (!entry) continue;
     predTemplates.add(normalizeTemplate(entry.template));
   }
 
-  // Calculate weighted accuracy
-  let correctWeight = 0;
-  let totalWeight = 0;
-
-  for (const [_templateId, { template, count }] of gtTemplates) {
-    const normalized = normalizeTemplate(template);
-    if (predTemplates.has(normalized)) {
-      correctWeight += count;
+  // Calculate intersection
+  let intersection = 0;
+  for (const template of gtTemplates) {
+    if (predTemplates.has(template)) {
+      intersection++;
     }
-    totalWeight += count;
   }
 
-  return totalWeight > 0 ? correctWeight / totalWeight : 0;
+  // Calculate precision, recall, and F1
+  const precision = predTemplates.size > 0 ? intersection / predTemplates.size : 0;
+  const recall = gtTemplates.size > 0 ? intersection / gtTemplates.size : 0;
+
+  return precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
 }
 
 /**
@@ -266,8 +265,18 @@ export function evaluateParsing(
   groundTruth: GroundTruthEntry[],
   predictions: PredictionEntry[]
 ): EvalResult {
-  const gtTemplateIds = new Set(groundTruth.map(e => e.templateId));
-  const predTemplateIds = new Set(predictions.map(e => e.templateId));
+  // Build template ID sets with undefined guards
+  const gtTemplateIds = new Set<string>();
+  for (const entry of groundTruth) {
+    if (!entry) continue;
+    gtTemplateIds.add(entry.templateId);
+  }
+
+  const predTemplateIds = new Set<string>();
+  for (const entry of predictions) {
+    if (!entry) continue;
+    predTemplateIds.add(entry.templateId);
+  }
 
   return {
     groupingAccuracy: calculateGroupingAccuracy(groundTruth, predictions),
