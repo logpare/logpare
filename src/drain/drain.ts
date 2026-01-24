@@ -3,7 +3,7 @@ import { defaultStrategy } from '../preprocessing/default.js';
 import { WILDCARD } from '../preprocessing/patterns.js';
 import { DrainNode } from './node.js';
 import { LogCluster } from './cluster.js';
-import { formatSummary, formatDetailed, formatJson } from '../output/formatter.js';
+import { formatSummary, formatDetailed, formatJson, formatJsonStable } from '../output/formatter.js';
 
 /**
  * Default configuration values for Drain algorithm.
@@ -143,6 +143,10 @@ export class Drain {
 
   /**
    * Search the parse tree for a matching cluster.
+   *
+   * Uses XDrain-inspired token-position fallback: if the first token
+   * looks like a variable (timestamp, PID, etc.), tries using the
+   * second token as the navigation key for better matching.
    */
   private treeSearch(tokens: string[]): LogCluster | null {
     const tokenCount = tokens.length;
@@ -154,13 +158,44 @@ export class Drain {
       return null;
     }
 
-    // Level 2: Navigate by first token
+    // Try primary search with first token
+    const primaryResult = this.treeSearchFromToken(lengthNode, tokens, 0);
+    if (primaryResult !== null) {
+      return primaryResult;
+    }
+
+    // XDrain-inspired fallback: if first token looks like a variable,
+    // try searching with second token as the navigation key
     const firstToken = tokens[0];
-    if (firstToken === undefined) {
+    if (
+      tokens.length > 1 &&
+      firstToken !== undefined &&
+      this.looksLikeVariable(firstToken)
+    ) {
+      return this.treeSearchFromToken(lengthNode, tokens, 1);
+    }
+
+    return null;
+  }
+
+  /**
+   * Search from a specific token position in the tree.
+   * @param lengthNode - The node at level 1 (token count)
+   * @param tokens - All tokens in the log line
+   * @param startIndex - Which token to use as "first token" for navigation
+   */
+  private treeSearchFromToken(
+    lengthNode: DrainNode,
+    tokens: string[],
+    startIndex: number
+  ): LogCluster | null {
+    // Level 2: Navigate by token at startIndex
+    const navToken = tokens[startIndex];
+    if (navToken === undefined) {
       return null;
     }
 
-    let currentNode = lengthNode.getChild(firstToken);
+    let currentNode = lengthNode.getChild(navToken);
 
     // Try wildcard child if exact match not found
     if (currentNode === undefined) {
@@ -173,7 +208,7 @@ export class Drain {
 
     // Levels 3+: Navigate by subsequent tokens
     let searchNode: DrainNode = currentNode;
-    for (let i = 1; i < Math.min(tokens.length, this.depth); i++) {
+    for (let i = startIndex + 1; i < Math.min(tokens.length, this.depth + startIndex); i++) {
       const token = tokens[i];
       if (token === undefined) {
         break;
@@ -358,6 +393,9 @@ export class Drain {
         break;
       case 'json':
         formatted = formatJson(limitedTemplates, stats);
+        break;
+      case 'json-stable':
+        formatted = formatJsonStable(limitedTemplates, stats);
         break;
       case 'summary':
       default:

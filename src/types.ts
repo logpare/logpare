@@ -141,8 +141,14 @@ export interface DrainOptions {
 
 /**
  * Output format for compression results.
+ *
+ * - 'summary': Compact template list with frequencies
+ * - 'detailed': Full templates with sample variables and metadata
+ * - 'json': Machine-readable JSON with pretty printing
+ * - 'json-stable': Cache-optimized JSON (sorted keys, compact)
+ *   for maximum LLM KV-cache hits
  */
-export type OutputFormat = 'summary' | 'detailed' | 'json';
+export type OutputFormat = 'summary' | 'detailed' | 'json' | 'json-stable';
 
 /**
  * Options for the compress() function.

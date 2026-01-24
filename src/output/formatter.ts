@@ -1,6 +1,27 @@
 import type { Template, CompressionResult } from '../types.js';
 
 /**
+ * Recursively sort object keys for deterministic JSON output.
+ * This enables LLM KV-cache hits when the same data is serialized multiple times.
+ */
+function sortObjectKeys(value: unknown): unknown {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(sortObjectKeys);
+  }
+
+  const sorted: Record<string, unknown> = {};
+  const keys = Object.keys(value as Record<string, unknown>).sort();
+  for (const key of keys) {
+    sorted[key] = sortObjectKeys((value as Record<string, unknown>)[key]);
+  }
+  return sorted;
+}
+
+/**
  * Format templates as a compact summary.
  */
 export function formatSummary(
@@ -152,4 +173,46 @@ export function formatJson(
   };
 
   return JSON.stringify(output, null, 2);
+}
+
+/**
+ * Format templates as cache-optimized JSON.
+ *
+ * Key differences from standard JSON:
+ * - Sorted keys at all levels for deterministic output
+ * - Compact format (no whitespace) to minimize tokens
+ * - Enables LLM prompt caching (KV-cache hits) when sending
+ *   the same compressed logs multiple times
+ */
+export function formatJsonStable(
+  templates: Template[],
+  stats: CompressionResult['stats']
+): string {
+  const output = {
+    stats: {
+      compressionRatio: Math.round(stats.compressionRatio * 1000) / 1000,
+      estimatedTokenReduction: Math.round(stats.estimatedTokenReduction * 1000) / 1000,
+      inputLines: stats.inputLines,
+      uniqueTemplates: stats.uniqueTemplates,
+    },
+    templates: templates.map((t) => ({
+      correlationIdSamples: t.correlationIdSamples,
+      durationSamples: t.durationSamples,
+      firstSeen: t.firstSeen,
+      fullUrlSamples: t.fullUrlSamples,
+      id: t.id,
+      isStackFrame: t.isStackFrame,
+      lastSeen: t.lastSeen,
+      occurrences: t.occurrences,
+      pattern: t.pattern,
+      samples: t.sampleVariables,
+      severity: t.severity,
+      statusCodeSamples: t.statusCodeSamples,
+      urlSamples: t.urlSamples,
+    })),
+    version: '1.1',
+  };
+
+  // Compact output with sorted keys for cache optimization
+  return JSON.stringify(sortObjectKeys(output));
 }

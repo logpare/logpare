@@ -1,0 +1,188 @@
+{
+  "description": "Ground truth annotations for HDFS log parsing evaluation",
+  "source": "test/fixtures/hdfs.log",
+  "templates": {
+    "E1": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating",
+    "E2": "INFO dfs.DataNode$DataXceiver: Receiving block <*> src: <*> dest: <*>",
+    "E3": "INFO dfs.DataBlockScanner: Verification succeeded for <*>",
+    "E4": "WARN dfs.DataNode$DataXceiver: <*> Got exception while serving <*> to <*>",
+    "E5": "INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: <*> is added to <*> size <*>",
+    "E6": "INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: <*> <*>"
+  },
+  "entries": [
+    {
+      "lineNumber": 1,
+      "content": "081109 203518 143 INFO dfs.DataNode$PacketResponder: PacketResponder 1 for block blk_38865049064139660 terminating",
+      "templateId": "E1",
+      "template": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating"
+    },
+    {
+      "lineNumber": 2,
+      "content": "081109 203518 144 INFO dfs.DataNode$PacketResponder: PacketResponder 0 for block blk_-6670958622368987959 terminating",
+      "templateId": "E1",
+      "template": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating"
+    },
+    {
+      "lineNumber": 3,
+      "content": "081109 203518 145 INFO dfs.DataNode$PacketResponder: PacketResponder 2 for block blk_7503483334202473044 terminating",
+      "templateId": "E1",
+      "template": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating"
+    },
+    {
+      "lineNumber": 4,
+      "content": "081109 203519 146 INFO dfs.DataNode$DataXceiver: Receiving block blk_-1608999687919862906 src: /10.250.19.102:54106 dest: /10.250.19.102:50010",
+      "templateId": "E2",
+      "template": "INFO dfs.DataNode$DataXceiver: Receiving block <*> src: <*> dest: <*>"
+    },
+    {
+      "lineNumber": 5,
+      "content": "081109 203519 147 INFO dfs.DataNode$DataXceiver: Receiving block blk_-3544583377289625738 src: /10.250.10.6:40524 dest: /10.250.10.6:50010",
+      "templateId": "E2",
+      "template": "INFO dfs.DataNode$DataXceiver: Receiving block <*> src: <*> dest: <*>"
+    },
+    {
+      "lineNumber": 6,
+      "content": "081109 203520 148 INFO dfs.DataNode$PacketResponder: PacketResponder 1 for block blk_-1608999687919862906 terminating",
+      "templateId": "E1",
+      "template": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating"
+    },
+    {
+      "lineNumber": 7,
+      "content": "081109 203520 149 INFO dfs.DataNode$PacketResponder: PacketResponder 0 for block blk_-3544583377289625738 terminating",
+      "templateId": "E1",
+      "template": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating"
+    },
+    {
+      "lineNumber": 8,
+      "content": "081109 203521 150 INFO dfs.DataBlockScanner: Verification succeeded for blk_8229193803249955061",
+      "templateId": "E3",
+      "template": "INFO dfs.DataBlockScanner: Verification succeeded for <*>"
+    },
+    {
+      "lineNumber": 9,
+      "content": "081109 203521 151 INFO dfs.DataBlockScanner: Verification succeeded for blk_-4980916519894289629",
+      "templateId": "E3",
+      "template": "INFO dfs.DataBlockScanner: Verification succeeded for <*>"
+    },
+    {
+      "lineNumber": 10,
+      "content": "081109 203522 152 WARN dfs.DataNode$DataXceiver: DatanodeRegistration(10.250.19.102:50010, storageID=DS-1085928313-10.250.19.102-50010-1224117547049, infoPort=50075, ipcPort=50020):Got exception while serving blk_38865049064139660 to /10.251.31.84:",
+      "templateId": "E4",
+      "template": "WARN dfs.DataNode$DataXceiver: <*> Got exception while serving <*> to <*>"
+    },
+    {
+      "lineNumber": 11,
+      "content": "081109 203522 153 INFO dfs.DataNode$DataXceiver: Receiving block blk_752417084293650414 src: /10.251.31.85:44668 dest: /10.251.31.85:50010",
+      "templateId": "E2",
+      "template": "INFO dfs.DataNode$DataXceiver: Receiving block <*> src: <*> dest: <*>"
+    },
+    {
+      "lineNumber": 12,
+      "content": "081109 203523 154 INFO dfs.DataNode$PacketResponder: PacketResponder 1 for block blk_752417084293650414 terminating",
+      "templateId": "E1",
+      "template": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating"
+    },
+    {
+      "lineNumber": 13,
+      "content": "081109 203523 155 INFO dfs.DataBlockScanner: Verification succeeded for blk_1204437790506730540",
+      "templateId": "E3",
+      "template": "INFO dfs.DataBlockScanner: Verification succeeded for <*>"
+    },
+    {
+      "lineNumber": 14,
+      "content": "081109 203524 156 INFO dfs.DataNode$DataXceiver: Receiving block blk_-6952295549769108894 src: /10.250.10.6:40532 dest: /10.250.10.6:50010",
+      "templateId": "E2",
+      "template": "INFO dfs.DataNode$DataXceiver: Receiving block <*> src: <*> dest: <*>"
+    },
+    {
+      "lineNumber": 15,
+      "content": "081109 203524 157 INFO dfs.DataNode$PacketResponder: PacketResponder 0 for block blk_-6952295549769108894 terminating",
+      "templateId": "E1",
+      "template": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating"
+    },
+    {
+      "lineNumber": 16,
+      "content": "081109 203525 158 INFO dfs.DataBlockScanner: Verification succeeded for blk_-8012891370364960881",
+      "templateId": "E3",
+      "template": "INFO dfs.DataBlockScanner: Verification succeeded for <*>"
+    },
+    {
+      "lineNumber": 17,
+      "content": "081109 203525 159 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.214.112:50010 is added to blk_-6952295549769108894 size 67108864",
+      "templateId": "E5",
+      "template": "INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: <*> is added to <*> size <*>"
+    },
+    {
+      "lineNumber": 18,
+      "content": "081109 203526 160 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/rand/_temporary/_task_200811092030_0001_m_000392_0/part-00392. blk_7503483334202473044",
+      "templateId": "E6",
+      "template": "INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: <*> <*>"
+    },
+    {
+      "lineNumber": 19,
+      "content": "081109 203526 161 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.250.19.102:50010 is added to blk_7503483334202473044 size 67108864",
+      "templateId": "E5",
+      "template": "INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: <*> is added to <*> size <*>"
+    },
+    {
+      "lineNumber": 20,
+      "content": "081109 203527 162 INFO dfs.DataNode$DataXceiver: Receiving block blk_5238279270678989102 src: /10.251.31.85:44676 dest: /10.251.31.85:50010",
+      "templateId": "E2",
+      "template": "INFO dfs.DataNode$DataXceiver: Receiving block <*> src: <*> dest: <*>"
+    },
+    {
+      "lineNumber": 21,
+      "content": "081109 203527 163 INFO dfs.DataNode$PacketResponder: PacketResponder 2 for block blk_5238279270678989102 terminating",
+      "templateId": "E1",
+      "template": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating"
+    },
+    {
+      "lineNumber": 22,
+      "content": "081109 203528 164 INFO dfs.DataBlockScanner: Verification succeeded for blk_3587508140051953248",
+      "templateId": "E3",
+      "template": "INFO dfs.DataBlockScanner: Verification succeeded for <*>"
+    },
+    {
+      "lineNumber": 23,
+      "content": "081109 203528 165 INFO dfs.DataNode$DataXceiver: Receiving block blk_-4980916519894289629 src: /10.250.10.6:40540 dest: /10.250.10.6:50010",
+      "templateId": "E2",
+      "template": "INFO dfs.DataNode$DataXceiver: Receiving block <*> src: <*> dest: <*>"
+    },
+    {
+      "lineNumber": 24,
+      "content": "081109 203529 166 INFO dfs.DataNode$PacketResponder: PacketResponder 1 for block blk_-4980916519894289629 terminating",
+      "templateId": "E1",
+      "template": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating"
+    },
+    {
+      "lineNumber": 25,
+      "content": "081109 203529 167 INFO dfs.DataBlockScanner: Verification succeeded for blk_-1608999687919862906",
+      "templateId": "E3",
+      "template": "INFO dfs.DataBlockScanner: Verification succeeded for <*>"
+    },
+    {
+      "lineNumber": 26,
+      "content": "081109 203530 168 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/rand/_temporary/_task_200811092030_0001_m_000393_0/part-00393. blk_-3544583377289625738",
+      "templateId": "E6",
+      "template": "INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: <*> <*>"
+    },
+    {
+      "lineNumber": 27,
+      "content": "081109 203530 169 INFO dfs.DataNode$DataXceiver: Receiving block blk_1204437790506730540 src: /10.251.31.85:44684 dest: /10.251.31.85:50010",
+      "templateId": "E2",
+      "template": "INFO dfs.DataNode$DataXceiver: Receiving block <*> src: <*> dest: <*>"
+    },
+    {
+      "lineNumber": 28,
+      "content": "081109 203531 170 INFO dfs.DataNode$PacketResponder: PacketResponder 0 for block blk_1204437790506730540 terminating",
+      "templateId": "E1",
+      "template": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating"
+    },
+    {
+      "lineNumber": 29,
+      "content": "081109 203531 171 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to blk_1204437790506730540 size 67108864",
+      "templateId": "E5",
+      "template": "INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: <*> is added to <*> size <*>"
+    }
+  ]
+}
