@@ -209,8 +209,10 @@ export class Drain {
     }
 
     // Levels 3+: Navigate by subsequent tokens
+    // Use this.depth as upper bound (not this.depth + startIndex) to match
+    // the tree structure created during insertion
     let searchNode: DrainNode = currentNode;
-    for (let i = startIndex + 1; i < Math.min(tokens.length, this.depth + startIndex); i++) {
+    for (let i = startIndex + 1; i < Math.min(tokens.length, this.depth); i++) {
       const token = tokens[i];
       if (token === undefined) {
         break;

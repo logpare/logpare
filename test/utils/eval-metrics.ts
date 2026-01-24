@@ -182,7 +182,6 @@ export function calculateF1GroupingAccuracy(
   let totalWeight = 0;
 
   for (const [_gtTemplateId, gtIndices] of gtGroups) {
-    const gtSet = new Set(gtIndices);
     let bestF1 = 0;
 
     // Find the predicted cluster with best F1 for this GT cluster
