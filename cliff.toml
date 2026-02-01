@@ -48,9 +48,8 @@ commit_parsers = [
   { message = "^chore", skip = true },
   { message = "^ci", skip = true },
   { message = "^style", skip = true },
-  { message = "^merge", skip = true },
+  { message = "^[Mm]erge", skip = true },
 ]
 filter_commits = false
 tag_pattern = "v[0-9].*"
-# Only process commits that touch the core library / MCP package
-# (skip docs-only, CI-only, and chore commits via the parsers above)
+# Docs-only, CI-only, and chore commits are skipped via the parsers above

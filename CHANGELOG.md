@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `llms.txt` for AI-readable documentation
 - Documentation site (Fumadocs) with interactive playground, blog, and success stories form
 - Logo SVG for branding
-- Missing CLI validation tests
+- CLI validation tests for error handling and edge cases
 
 ### Fixed
 
