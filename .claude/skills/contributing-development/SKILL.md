@@ -532,9 +532,9 @@ pnpm test -- -u
 
 ```bash
 # Update version in package.json
-npm version patch  # 0.0.5 → 0.0.6
-npm version minor  # 0.0.5 → 0.1.0
-npm version major  # 0.0.5 → 1.0.0
+npm version patch  # 0.1.0 → 0.1.1
+npm version minor  # 0.1.0 → 0.2.0
+npm version major  # 0.1.0 → 1.0.0
 ```
 
 ### Update CHANGELOG.md

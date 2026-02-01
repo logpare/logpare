@@ -311,7 +311,7 @@ main().catch((error) => {
   "files": ["build"],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
-    "logpare": "^0.0.5"
+    "logpare": "^0.1.0"
   }
 }
 ```
