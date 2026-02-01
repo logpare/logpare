@@ -25,6 +25,7 @@
     "test:watch": "vitest",
     "bench": "vitest bench",
     "typecheck": "tsc --noEmit",
+    "changelog": "npx --yes git-cliff@2.7.0 -o CHANGELOG.md",
     "prepublishOnly": "pnpm typecheck && pnpm test && pnpm build"
   },
   "keywords": [
