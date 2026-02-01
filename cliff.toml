@@ -1,0 +1,56 @@
+# git-cliff configuration
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+# Header of the changelog
+header = """
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+"""
+body = """
+{%- macro remote_url() -%}
+  https://github.com/logpare/logpare
+{%- endmacro -%}
+
+{% if version -%}
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+## [Unreleased]
+{% endif -%}
+
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for commit in commits %}
+- {{ commit.message | split(pat="\n") | first | trim }}\
+{% endfor %}
+{% endfor %}
+"""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+commit_parsers = [
+  { message = "^feat", group = "Added" },
+  { message = "^fix", group = "Fixed" },
+  { message = "^refactor", group = "Changed" },
+  { message = "^perf", group = "Changed" },
+  { message = "^test", group = "Added" },
+  { message = "^doc", skip = true },
+  { message = "^docs", skip = true },
+  { message = "^chore\\(changelog\\)", skip = true },
+  { message = "^chore\\(deps\\)", skip = true },
+  { message = "^chore", skip = true },
+  { message = "^ci", skip = true },
+  { message = "^style", skip = true },
+  { message = "^merge", skip = true },
+]
+filter_commits = false
+tag_pattern = "v[0-9].*"
+# Only process commits that touch the core library / MCP package
+# (skip docs-only, CI-only, and chore commits via the parsers above)
