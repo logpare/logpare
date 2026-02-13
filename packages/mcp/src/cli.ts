@@ -10,108 +10,77 @@
  *   npx @logpare/mcp --test       # Run self-test
  */
 
+import { parseArgs } from 'node:util';
 import { startStdioServer, type MCPServerConfig } from './index.js';
 
-function parseArgs(): MCPServerConfig & { test?: boolean } {
-  const args = process.argv.slice(2);
-  const config: MCPServerConfig & { test?: boolean } = {};
+const VALID_FORMATS = ['summary', 'detailed', 'json'] as const;
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
+function parseCliArgs(): MCPServerConfig & { test: boolean } {
+  const { values } = parseArgs({
+    options: {
+      ucp: { type: 'boolean', short: 'u', default: false },
+      format: { type: 'string', short: 'f' },
+      depth: { type: 'string', short: 'd' },
+      threshold: { type: 'string', short: 't' },
+      'max-lines': { type: 'string', short: 'm' },
+      test: { type: 'boolean', default: false },
+      help: { type: 'boolean', short: 'h', default: false },
+      version: { type: 'boolean', short: 'v', default: false },
+    },
+    strict: true,
+  });
 
-    switch (arg) {
-      case '--ucp':
-      case '-u':
-        config.ucp = { enabled: true };
-        break;
+  if (values.help) {
+    printHelp();
+    process.exit(0);
+  }
 
-      case '--format':
-      case '-f': {
-        const nextArg = args[++i];
-        if (nextArg === undefined || nextArg.startsWith('-')) {
-          console.error(`Option ${arg} requires a value`);
-          process.exit(1);
-        }
-        const validFormats = ['summary', 'detailed', 'json'];
-        if (!validFormats.includes(nextArg)) {
-          console.error(`Invalid format: ${nextArg}. Must be one of: ${validFormats.join(', ')}`);
-          process.exit(1);
-        }
-        config.defaultFormat = nextArg as 'summary' | 'detailed' | 'json';
-        break;
-      }
+  if (values.version) {
+    printVersion();
+    process.exit(0);
+  }
 
-      case '--depth':
-      case '-d': {
-        const nextArg = args[++i];
-        if (nextArg === undefined || nextArg.startsWith('-')) {
-          console.error(`Option ${arg} requires a value`);
-          process.exit(1);
-        }
-        const depth = parseInt(nextArg, 10);
-        if (Number.isNaN(depth)) {
-          console.error(`Option ${arg} requires a numeric value`);
-          process.exit(1);
-        }
-        config.defaultDepth = depth;
-        break;
-      }
+  const config: MCPServerConfig & { test: boolean } = {
+    test: values.test as boolean,
+  };
 
-      case '--threshold':
-      case '-t': {
-        const nextArg = args[++i];
-        if (nextArg === undefined || nextArg.startsWith('-')) {
-          console.error(`Option ${arg} requires a value`);
-          process.exit(1);
-        }
-        const threshold = parseFloat(nextArg);
-        if (Number.isNaN(threshold)) {
-          console.error(`Option ${arg} requires a numeric value`);
-          process.exit(1);
-        }
-        config.defaultSimThreshold = threshold;
-        break;
-      }
+  if (values.ucp) {
+    config.ucp = { enabled: true };
+  }
 
-      case '--max-lines':
-      case '-m': {
-        const nextArg = args[++i];
-        if (nextArg === undefined || nextArg.startsWith('-')) {
-          console.error(`Option ${arg} requires a value`);
-          process.exit(1);
-        }
-        const maxLines = parseInt(nextArg, 10);
-        if (Number.isNaN(maxLines)) {
-          console.error(`Option ${arg} requires a numeric value`);
-          process.exit(1);
-        }
-        config.maxLinesPerRequest = maxLines;
-        break;
-      }
-
-      case '--test':
-        config.test = true;
-        break;
-
-      case '--help':
-      case '-h':
-        printHelp();
-        process.exit(0);
-        break;
-
-      case '--version':
-      case '-v':
-        printVersion();
-        process.exit(0);
-        break;
-
-      default:
-        if (arg?.startsWith('-')) {
-          console.error(`Unknown option: ${arg}`);
-          console.error('Use --help for usage information');
-          process.exit(1);
-        }
+  if (values.format !== undefined) {
+    if (!(VALID_FORMATS as readonly string[]).includes(values.format)) {
+      console.error(`Invalid format: ${values.format}. Must be one of: ${VALID_FORMATS.join(', ')}`);
+      process.exit(1);
     }
+    config.defaultFormat = values.format as (typeof VALID_FORMATS)[number];
+  }
+
+  if (values.depth !== undefined) {
+    const depth = parseInt(values.depth, 10);
+    if (Number.isNaN(depth)) {
+      console.error('Option --depth requires a numeric value');
+      process.exit(1);
+    }
+    config.defaultDepth = depth;
+  }
+
+  if (values.threshold !== undefined) {
+    const threshold = parseFloat(values.threshold);
+    if (Number.isNaN(threshold)) {
+      console.error('Option --threshold requires a numeric value');
+      process.exit(1);
+    }
+    config.defaultSimThreshold = threshold;
+  }
+
+  if (values['max-lines'] !== undefined) {
+    const maxLines = parseInt(values['max-lines'], 10);
+    if (Number.isNaN(maxLines)) {
+      console.error('Option --max-lines requires a numeric value');
+      process.exit(1);
+    }
+    config.maxLinesPerRequest = maxLines;
   }
 
   return config;
@@ -203,7 +172,7 @@ async function runTest(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const config = parseArgs();
+  const config = parseCliArgs();
 
   if (config.test) {
     await runTest();
