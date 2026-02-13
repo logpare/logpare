@@ -11,6 +11,18 @@ import {
 import type { Severity } from '../types.js';
 
 /**
+ * Append unique items to an array up to a maximum count.
+ */
+function addUniqueSamples<T>(array: T[], max: number, items: T[]): void {
+  for (const item of items) {
+    if (array.length >= max) break;
+    if (!array.includes(item)) {
+      array.push(item);
+    }
+  }
+}
+
+/**
  * Represents a log cluster (template) discovered by the Drain algorithm.
  *
  * V8 Optimization: All properties are initialized in the constructor
@@ -59,17 +71,13 @@ export class LogCluster {
   /** Maximum number of sample variables to store */
   private readonly maxSamples: number;
 
-  /** Maximum number of URL samples to store */
-  private readonly maxUrlSamples: number = 5;
-
-  /** Maximum number of status code samples to store */
-  private readonly maxStatusCodeSamples: number = 5;
-
-  /** Maximum number of correlation ID samples to store */
-  private readonly maxCorrelationIdSamples: number = 3;
-
-  /** Maximum number of duration samples to store */
-  private readonly maxDurationSamples: number = 5;
+  /** Per-type sample limits for diagnostic metadata */
+  private readonly sampleLimits = {
+    url: 5,
+    statusCode: 5,
+    correlationId: 3,
+    duration: 5,
+  } as const;
 
   constructor(
     id: string,
@@ -90,38 +98,12 @@ export class LogCluster {
     this.severity = detectSeverity(originalLine);
     this.isStackFrame = isStackFrame(originalLine);
 
-    // Initialize sample arrays
-    this.urlSamples = [];
-    this.fullUrlSamples = [];
-    this.statusCodeSamples = [];
-    this.correlationIdSamples = [];
-    this.durationSamples = [];
-
-    // Extract and store samples from original line
-    const urls = extractUrls(originalLine);
-    if (urls.length > 0) {
-      this.urlSamples.push(...urls.slice(0, this.maxUrlSamples));
-    }
-
-    const fullUrls = extractFullUrls(originalLine);
-    if (fullUrls.length > 0) {
-      this.fullUrlSamples.push(...fullUrls.slice(0, this.maxUrlSamples));
-    }
-
-    const statusCodes = extractStatusCodes(originalLine);
-    if (statusCodes.length > 0) {
-      this.statusCodeSamples.push(...statusCodes.slice(0, this.maxStatusCodeSamples));
-    }
-
-    const correlationIds = extractCorrelationIds(originalLine);
-    if (correlationIds.length > 0) {
-      this.correlationIdSamples.push(...correlationIds.slice(0, this.maxCorrelationIdSamples));
-    }
-
-    const durations = extractDurations(originalLine);
-    if (durations.length > 0) {
-      this.durationSamples.push(...durations.slice(0, this.maxDurationSamples));
-    }
+    // Initialize and populate diagnostic sample arrays from original line
+    this.urlSamples = extractUrls(originalLine).slice(0, this.sampleLimits.url);
+    this.fullUrlSamples = extractFullUrls(originalLine).slice(0, this.sampleLimits.url);
+    this.statusCodeSamples = extractStatusCodes(originalLine).slice(0, this.sampleLimits.statusCode);
+    this.correlationIdSamples = extractCorrelationIds(originalLine).slice(0, this.sampleLimits.correlationId);
+    this.durationSamples = extractDurations(originalLine).slice(0, this.sampleLimits.duration);
   }
 
   /**
@@ -145,57 +127,13 @@ export class LogCluster {
       this.sampleVariables.push(variables);
     }
 
-    // Extract and store samples from original line if present
+    // Extract and store diagnostic samples from original line
     if (originalLine) {
-      // URLs (hostnames)
-      if (this.urlSamples.length < this.maxUrlSamples) {
-        const urls = extractUrls(originalLine);
-        for (const url of urls) {
-          if (!this.urlSamples.includes(url) && this.urlSamples.length < this.maxUrlSamples) {
-            this.urlSamples.push(url);
-          }
-        }
-      }
-
-      // Full URLs
-      if (this.fullUrlSamples.length < this.maxUrlSamples) {
-        const fullUrls = extractFullUrls(originalLine);
-        for (const url of fullUrls) {
-          if (!this.fullUrlSamples.includes(url) && this.fullUrlSamples.length < this.maxUrlSamples) {
-            this.fullUrlSamples.push(url);
-          }
-        }
-      }
-
-      // Status codes
-      if (this.statusCodeSamples.length < this.maxStatusCodeSamples) {
-        const statusCodes = extractStatusCodes(originalLine);
-        for (const code of statusCodes) {
-          if (!this.statusCodeSamples.includes(code) && this.statusCodeSamples.length < this.maxStatusCodeSamples) {
-            this.statusCodeSamples.push(code);
-          }
-        }
-      }
-
-      // Correlation IDs
-      if (this.correlationIdSamples.length < this.maxCorrelationIdSamples) {
-        const correlationIds = extractCorrelationIds(originalLine);
-        for (const id of correlationIds) {
-          if (!this.correlationIdSamples.includes(id) && this.correlationIdSamples.length < this.maxCorrelationIdSamples) {
-            this.correlationIdSamples.push(id);
-          }
-        }
-      }
-
-      // Durations
-      if (this.durationSamples.length < this.maxDurationSamples) {
-        const durations = extractDurations(originalLine);
-        for (const duration of durations) {
-          if (!this.durationSamples.includes(duration) && this.durationSamples.length < this.maxDurationSamples) {
-            this.durationSamples.push(duration);
-          }
-        }
-      }
+      addUniqueSamples(this.urlSamples, this.sampleLimits.url, extractUrls(originalLine));
+      addUniqueSamples(this.fullUrlSamples, this.sampleLimits.url, extractFullUrls(originalLine));
+      addUniqueSamples(this.statusCodeSamples, this.sampleLimits.statusCode, extractStatusCodes(originalLine));
+      addUniqueSamples(this.correlationIdSamples, this.sampleLimits.correlationId, extractCorrelationIds(originalLine));
+      addUniqueSamples(this.durationSamples, this.sampleLimits.duration, extractDurations(originalLine));
     }
 
     return variables;

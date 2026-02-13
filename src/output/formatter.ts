@@ -141,13 +141,10 @@ export function formatDetailed(
 }
 
 /**
- * Format templates as JSON.
+ * Build the JSON output structure shared by both JSON formatters.
  */
-export function formatJson(
-  templates: Template[],
-  stats: CompressionResult['stats']
-): string {
-  const output = {
+function buildJsonOutput(templates: Template[], stats: CompressionResult['stats']) {
+  return {
     version: '1.1',
     stats: {
       inputLines: stats.inputLines,
@@ -171,8 +168,16 @@ export function formatJson(
       lastSeen: t.lastSeen,
     })),
   };
+}
 
-  return JSON.stringify(output, null, 2);
+/**
+ * Format templates as JSON.
+ */
+export function formatJson(
+  templates: Template[],
+  stats: CompressionResult['stats']
+): string {
+  return JSON.stringify(buildJsonOutput(templates, stats), null, 2);
 }
 
 /**
@@ -188,31 +193,5 @@ export function formatJsonStable(
   templates: Template[],
   stats: CompressionResult['stats']
 ): string {
-  const output = {
-    stats: {
-      compressionRatio: Math.round(stats.compressionRatio * 1000) / 1000,
-      estimatedTokenReduction: Math.round(stats.estimatedTokenReduction * 1000) / 1000,
-      inputLines: stats.inputLines,
-      uniqueTemplates: stats.uniqueTemplates,
-    },
-    templates: templates.map((t) => ({
-      correlationIdSamples: t.correlationIdSamples,
-      durationSamples: t.durationSamples,
-      firstSeen: t.firstSeen,
-      fullUrlSamples: t.fullUrlSamples,
-      id: t.id,
-      isStackFrame: t.isStackFrame,
-      lastSeen: t.lastSeen,
-      occurrences: t.occurrences,
-      pattern: t.pattern,
-      samples: t.sampleVariables,
-      severity: t.severity,
-      statusCodeSamples: t.statusCodeSamples,
-      urlSamples: t.urlSamples,
-    })),
-    version: '1.1',
-  };
-
-  // Compact output with sorted keys for cache optimization
-  return JSON.stringify(sortObjectKeys(output));
+  return JSON.stringify(sortObjectKeys(buildJsonOutput(templates, stats)));
 }
