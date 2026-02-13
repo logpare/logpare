@@ -58,8 +58,8 @@ function parseCliArgs(): MCPServerConfig & { test: boolean } {
 
   if (values.depth !== undefined) {
     const depth = parseInt(values.depth, 10);
-    if (Number.isNaN(depth)) {
-      console.error('Option --depth requires a numeric value');
+    if (Number.isNaN(depth) || depth < 2 || depth > 8) {
+      console.error('Option --depth requires a value between 2 and 8');
       process.exit(1);
     }
     config.defaultDepth = depth;
@@ -67,8 +67,8 @@ function parseCliArgs(): MCPServerConfig & { test: boolean } {
 
   if (values.threshold !== undefined) {
     const threshold = parseFloat(values.threshold);
-    if (Number.isNaN(threshold)) {
-      console.error('Option --threshold requires a numeric value');
+    if (Number.isNaN(threshold) || threshold < 0 || threshold > 1) {
+      console.error('Option --threshold requires a value between 0.0 and 1.0');
       process.exit(1);
     }
     config.defaultSimThreshold = threshold;
@@ -76,8 +76,8 @@ function parseCliArgs(): MCPServerConfig & { test: boolean } {
 
   if (values['max-lines'] !== undefined) {
     const maxLines = parseInt(values['max-lines'], 10);
-    if (Number.isNaN(maxLines)) {
-      console.error('Option --max-lines requires a numeric value');
+    if (Number.isNaN(maxLines) || maxLines < 1) {
+      console.error('Option --max-lines requires a positive integer');
       process.exit(1);
     }
     config.maxLinesPerRequest = maxLines;
