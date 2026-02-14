@@ -5,6 +5,15 @@ import { DrainNode } from './node.js';
 import { LogCluster } from './cluster.js';
 import { formatSummary, formatDetailed, formatJson, formatJsonStable } from '../output/formatter.js';
 
+type Formatter = (templates: Template[], stats: CompressionResult['stats']) => string;
+
+const FORMATTERS: Record<OutputFormat, Formatter> = {
+  summary: formatSummary,
+  detailed: formatDetailed,
+  json: formatJson,
+  'json-stable': formatJsonStable,
+};
+
 /**
  * Default configuration values for Drain algorithm.
  */
@@ -389,23 +398,7 @@ export class Drain {
     // Calculate stats
     const stats = this.calculateStats(templates);
 
-    // Format output
-    let formatted: string;
-    switch (format) {
-      case 'detailed':
-        formatted = formatDetailed(limitedTemplates, stats);
-        break;
-      case 'json':
-        formatted = formatJson(limitedTemplates, stats);
-        break;
-      case 'json-stable':
-        formatted = formatJsonStable(limitedTemplates, stats);
-        break;
-      case 'summary':
-      default:
-        formatted = formatSummary(limitedTemplates, stats);
-        break;
-    }
+    const formatted = (FORMATTERS[format] ?? formatSummary)(limitedTemplates, stats);
 
     return {
       templates: limitedTemplates,

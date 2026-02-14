@@ -36,8 +36,8 @@ importers:
         specifier: ^15.2.5
         version: 15.8.5(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(lucide-react@0.468.0(react@19.2.3))(next@15.5.9(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwindcss@4.1.18)
       logpare:
-        specifier: ^0.0.5
-        version: 0.0.5
+        specifier: ^0.1.0
+        version: 0.1.0
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@19.2.3)
@@ -2163,8 +2163,8 @@ packages:
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
 
-  logpare@0.0.5:
-    resolution: {integrity: sha512-LmZ3r4GirmdqgILBT/a12HAYluvxOQtELQD5HcCsMPhv9+UiCjf3dHjlFzYgJ9eM8kApayYUepKy49wuISDxgA==}
+  logpare@0.1.0:
+    resolution: {integrity: sha512-zaxbnNiaiGAnTfHyiCqBgOBh3Z2p4V1qpnM5CXTzf5EJefZXIIJxbM5vFos+Z8au6QD9G6OByhFkA/srehE0cQ==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
     hasBin: true
 
@@ -5158,7 +5158,7 @@ snapshots:
 
   lodash.merge@4.6.2: {}
 
-  logpare@0.0.5: {}
+  logpare@0.1.0: {}
 
   longest-streak@3.1.0: {}
 
