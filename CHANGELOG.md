@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - add cache-optimized output and XDrain-style token fallback
 - automate changelog generation with git-cliff
 
+### Changed
+
+- simplify codebase and update package practices
+- migrate MCP CLI to parseArgs, replace formatter switch with map
+
 ### Fixed
 
 - address CodeRabbit PR review issues
@@ -50,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - correct loop bound and remove unused variable
 - compute true F1 in calculateF1ParsingAccuracy
 - address CodeRabbit review comments on changelog automation
+- validate CLI option ranges for depth, threshold, max-lines
 ## [0.0.5] - 2026-01-01
 
 ### Added
