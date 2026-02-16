@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - add missing CLI validation tests
 - add cache-optimized output and XDrain-style token fallback
 - automate changelog generation with git-cliff
+- add Vercel analytics
 
 ### Changed
 
