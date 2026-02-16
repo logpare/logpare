@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.19.11",
+    "@vercel/analytics": "^1.6.1",
     "fumadocs-core": "^15.2.5",
     "fumadocs-mdx": "^14.2.4",
     "fumadocs-ui": "^15.2.5",

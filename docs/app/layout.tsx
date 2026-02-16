@@ -1,4 +1,5 @@
 import './global.css';
+import { Analytics } from '@vercel/analytics/react';
 import { RootProvider } from 'fumadocs-ui/provider';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
@@ -41,6 +42,7 @@ export default function Layout({ children }: { children: ReactNode }): React.JSX
     <html lang="en" suppressHydrationWarning>
       <body className="bg-ds-primary text-ds-primary flex flex-col min-h-screen">
         <RootProvider>{children}</RootProvider>
+        <Analytics />
       </body>
     </html>
   );
