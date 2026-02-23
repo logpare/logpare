@@ -41,8 +41,15 @@ warn() {
 
 # Get files to check (staged files, or all source files if not in a git context)
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.ts' '*.tsx' '*.js' '*.jsx' 2>/dev/null || true)
-  if [ -z "$FILES" ]; then
+  RAW_FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.ts' '*.tsx' '*.js' '*.jsx' 2>/dev/null || true)
+  if [ -n "$RAW_FILES" ]; then
+    # Canonicalize repo-relative paths to absolute so output matches the find fallback
+    FILES=""
+    while IFS= read -r f; do
+      FILES="${FILES:+$FILES
+}$PROJECT_DIR/$f"
+    done <<< "$RAW_FILES"
+  else
     FILES=$(find "$PROJECT_DIR/src" -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \) 2>/dev/null || true)
   fi
 else
@@ -81,7 +88,7 @@ while IFS= read -r file; do
     # --- Hardcoded Secrets ---
     if echo "$TRIMMED" | grep -qiE "(api_key|apikey|secret|password|token|private_key)\s*[:=]\s*['\"][A-Za-z0-9+/=_-]{8,}" 2>/dev/null; then
       case "$file" in
-        *.example | *.template) ;;
+        *.example | *.example.* | *.template | *.template.*) ;;
         *) warn "Possible hardcoded secret" "$file" "$LINE_NUM" ;;
       esac
     fi

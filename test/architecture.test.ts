@@ -82,7 +82,30 @@ function extractImports(filePath: string): { specifier: string; line: number; te
   // Match: import ... from './path' or import './path' or import type ... from './path'
   const importPattern = /from\s+['"]([^'"]+)['"]|import\s+['"]([^'"]+)['"]/;
 
+  let inBlockComment = false;
+
   for (const [i, line] of lines.entries()) {
+    const trimmed = line.trim();
+
+    // Track block comments
+    if (inBlockComment) {
+      if (trimmed.includes('*/')) {
+        inBlockComment = false;
+      }
+      continue;
+    }
+    if (trimmed.startsWith('/*')) {
+      if (!trimmed.includes('*/')) {
+        inBlockComment = true;
+      }
+      continue;
+    }
+
+    // Skip single-line comments
+    if (trimmed.startsWith('//')) {
+      continue;
+    }
+
     const match = importPattern.exec(line);
     if (match) {
       const specifier = match[1] !== undefined ? match[1] : match[2];
@@ -192,7 +215,11 @@ describe('Architecture: Import boundaries', () => {
 
     // Verify index.ts actually exports the expected public API
     expect(indexContent).toContain('compress');
+    expect(indexContent).toContain('compressText');
     expect(indexContent).toContain('createDrain');
     expect(indexContent).toContain('CompressionResult');
+    expect(indexContent).toContain('detectSeverity');
+    expect(indexContent).toContain('isStackFrame');
+    expect(indexContent).toContain('extractUrls');
   });
 });
