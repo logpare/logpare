@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - add cache-optimized output and XDrain-style token fallback
 - automate changelog generation with git-cliff
 - add Vercel analytics
+- add AI-agent safety guardrails and developer tooling
 
 ### Changed
 
@@ -57,6 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - compute true F1 in calculateF1ParsingAccuracy
 - address CodeRabbit review comments on changelog automation
 - validate CLI option ranges for depth, threshold, max-lines
+- harden safety patterns and remove non-null assertions
+- address review findings in security scanner, architecture tests, and session hook
+- harden session hook, security scanner, and architecture tests
+- require path separator in directory-match boundary check
 ## [0.0.5] - 2026-01-01
 
 ### Added
