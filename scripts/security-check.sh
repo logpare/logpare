@@ -58,7 +58,7 @@ FILE_COUNT=$(echo "$FILES" | wc -l | tr -d ' ')
 echo "Security scan: checking $FILE_COUNT files..."
 echo ""
 
-for file in $FILES; do
+while IFS= read -r file; do
   [ -f "$file" ] || continue
   LINE_NUM=0
 
@@ -71,14 +71,15 @@ for file in $FILES; do
   while IFS= read -r line; do
     LINE_NUM=$((LINE_NUM + 1))
 
-    # Skip comment lines
+    # Skip comment lines; strip inline comments so commented-out code is not flagged
     TRIMMED=$(echo "$line" | sed 's/^[[:space:]]*//')
     case "$TRIMMED" in
       "//"*|"#"*|"*"*|"/*"*) continue ;;
     esac
+    TRIMMED=$(echo "$TRIMMED" | sed -e 's|//.*$||' -e 's|/\*.*\*/||g')
 
     # --- Hardcoded Secrets ---
-    if echo "$line" | grep -qiE "(api_key|apikey|secret|password|token|private_key)\s*[:=]\s*['\"][A-Za-z0-9+/=_-]{8,}" 2>/dev/null; then
+    if echo "$TRIMMED" | grep -qiE "(api_key|apikey|secret|password|token|private_key)\s*[:=]\s*['\"][A-Za-z0-9+/=_-]{8,}" 2>/dev/null; then
       case "$file" in
         *.example | *.template) ;;
         *) warn "Possible hardcoded secret" "$file" "$LINE_NUM" ;;
@@ -86,7 +87,7 @@ for file in $FILES; do
     fi
 
     # --- eval() Usage ---
-    if echo "$line" | grep -qE "\beval\s*\(" 2>/dev/null; then
+    if echo "$TRIMMED" | grep -qE "\beval\s*\(" 2>/dev/null; then
       warn "eval() usage — code injection risk" "$file" "$LINE_NUM"
     fi
 
@@ -95,7 +96,7 @@ for file in $FILES; do
       case "$file" in
         *cli.ts | *cli.js) ;; # CLI is allowed to log
         *)
-          if echo "$line" | grep -qE "console\.(log|debug)\(" 2>/dev/null; then
+          if echo "$TRIMMED" | grep -qE "console\.(log|debug)\(" 2>/dev/null; then
             warn "console.log() in library source (use structured output)" "$file" "$LINE_NUM"
           fi
           ;;
@@ -103,7 +104,7 @@ for file in $FILES; do
     fi
 
   done < "$file"
-done
+done <<< "$FILES"
 
 # Summary
 echo "──────────────────────────────────────"

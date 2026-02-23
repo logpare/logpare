@@ -82,11 +82,11 @@ function extractImports(filePath: string): { specifier: string; line: number; te
   // Match: import ... from './path' or import './path' or import type ... from './path'
   const importPattern = /from\s+['"]([^'"]+)['"]|import\s+['"]([^'"]+)['"]/;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!;
+  for (const [i, line] of lines.entries()) {
     const match = importPattern.exec(line);
     if (match) {
-      const specifier = match[1] ?? match[2]!;
+      const specifier = match[1] !== undefined ? match[1] : match[2];
+      if (!specifier) continue;
       // Only check relative imports (project modules)
       if (specifier.startsWith('.')) {
         imports.push({ specifier, line: i + 1, text: line.trim() });
@@ -121,7 +121,10 @@ describe('Architecture: Import boundaries', () => {
 
         for (const imp of imports) {
           for (const forbidden of rule.forbiddenImports) {
-            if (imp.specifier.startsWith(forbidden) || imp.specifier === forbidden.replace(/\/$/, '')) {
+            const isMatch = forbidden.endsWith('/')
+              ? imp.specifier.startsWith(forbidden) || imp.specifier === forbidden.slice(0, -1)
+              : imp.specifier === forbidden || imp.specifier.startsWith(forbidden + '/') || imp.specifier.startsWith(forbidden + '.');
+            if (isMatch) {
               violations.push(
                 `${file}:${imp.line} imports '${imp.specifier}' which violates boundary.\n` +
                 `  Found: ${imp.text}\n` +
@@ -159,16 +162,15 @@ describe('Architecture: Import boundaries', () => {
       const content = fs.readFileSync(file, 'utf-8');
       const lines = content.split('\n');
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!;
+      for (const [i, line] of lines.entries()) {
         // Check for re-exports: export { ... } from or export * from
         if (/^export\s+(\{[^}]+\}|\*)\s+from\s+['"]/.test(line)) {
           // Allow re-exports within the same submodule (e.g., drain/index.ts re-exporting drain/drain.ts)
           // This is already skipped by the index.ts check above
           // Flag re-exports that cross module boundaries in non-index files
           const match = /from\s+['"]([^'"]+)['"]/.exec(line);
-          if (match) {
-            const specifier = match[1]!;
+          if (match && match[1]) {
+            const specifier = match[1];
             // Only flag if it's crossing a module boundary (going up with ../)
             if (specifier.startsWith('../')) {
               violations.push(
