@@ -9,5 +9,20 @@ LOCKFILE="$PROJECT_DIR/pnpm-lock.yaml"
 if [ ! -d "$PROJECT_DIR/node_modules" ] || \
    { [ -f "$LOCKFILE" ] && [ "$LOCKFILE" -nt "$PROJECT_DIR/node_modules" ]; }; then
   echo "Installing dependencies..."
-  (cd "$PROJECT_DIR" && pnpm install --frozen-lockfile)
+  if (cd "$PROJECT_DIR" && pnpm install --frozen-lockfile); then
+    : # frozen install succeeded
+  else
+    echo ""
+    echo "WARNING: pnpm install --frozen-lockfile failed."
+    echo "  Lockfile: $LOCKFILE"
+    echo "  Project:  $PROJECT_DIR"
+    echo "  This usually means pnpm-lock.yaml is out of sync with package.json."
+    echo "  Retrying with pnpm install (non-frozen) as fallback..."
+    echo ""
+    if ! (cd "$PROJECT_DIR" && pnpm install); then
+      echo "ERROR: pnpm install also failed."
+      echo "  Please run 'pnpm install' manually in $PROJECT_DIR"
+      exit 1
+    fi
+  fi
 fi

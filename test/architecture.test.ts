@@ -39,6 +39,11 @@ const BOUNDARY_RULES: { module: string; forbiddenImports: string[] }[] = [
     forbiddenImports: ['./api', '../api', './cli', '../cli'],
   },
   {
+    // api.ts may use drain, preprocessing, output, types, but must not import cli
+    module: 'src/api.ts',
+    forbiddenImports: ['./cli', '../cli'],
+  },
+  {
     // types.ts is the dependency root — must not import from any project module
     module: 'src/types.ts',
     forbiddenImports: ['./drain/', '../drain/', './output/', '../output/', './preprocessing/', '../preprocessing/', './api', '../api', './cli', '../cli'],
@@ -126,9 +131,11 @@ function extractImports(filePath: string): { specifier: string; line: number; te
 
 describe('Architecture: Import boundaries', () => {
   it('should respect module dependency DAG', () => {
+    // Arrange
     const allFiles = getTypeScriptFiles('src');
     const violations: string[] = [];
 
+    // Act
     for (const rule of BOUNDARY_RULES) {
       // Find files that belong to this module group
       const moduleFiles = allFiles.filter((f) => {
@@ -139,19 +146,32 @@ describe('Architecture: Import boundaries', () => {
         return relative.startsWith(rule.module);
       });
 
+      // Pre-resolve each forbidden pattern to a canonical absolute path
+      // using the module directory as the reference point
+      const moduleDir = rule.module.endsWith('.ts')
+        ? path.dirname(rule.module)
+        : rule.module.replace(/\/$/, '');
+      const resolvedForbidden = rule.forbiddenImports.map((f) => ({
+        original: f,
+        resolved: path.resolve(moduleDir, f),
+      }));
+
       for (const file of moduleFiles) {
         const imports = extractImports(file);
 
         for (const imp of imports) {
-          for (const forbidden of rule.forbiddenImports) {
-            const isMatch = forbidden.endsWith('/')
-              ? imp.specifier.startsWith(forbidden) || imp.specifier === forbidden.slice(0, -1)
-              : imp.specifier === forbidden || imp.specifier.startsWith(forbidden + '/') || imp.specifier.startsWith(forbidden + '.');
+          // Resolve the import specifier to an absolute path based on the importing file
+          const resolvedImport = path.resolve(path.dirname(file), imp.specifier);
+
+          for (const forbidden of resolvedForbidden) {
+            const isMatch = forbidden.original.endsWith('/')
+              ? resolvedImport.startsWith(forbidden.resolved) || resolvedImport + '/' === forbidden.resolved + '/'
+              : resolvedImport === forbidden.resolved || resolvedImport.startsWith(forbidden.resolved + '/') || resolvedImport.startsWith(forbidden.resolved + '.');
             if (isMatch) {
               violations.push(
                 `${file}:${imp.line} imports '${imp.specifier}' which violates boundary.\n` +
                 `  Found: ${imp.text}\n` +
-                `  Rule: Files in ${rule.module} must not import from ${forbidden}`,
+                `  Rule: Files in ${rule.module} must not import from ${forbidden.original}`,
               );
             }
           }
@@ -159,6 +179,7 @@ describe('Architecture: Import boundaries', () => {
       }
     }
 
+    // Assert
     if (violations.length > 0) {
       expect.fail(
         `Found ${violations.length} import boundary violation(s):\n\n` +
@@ -169,11 +190,12 @@ describe('Architecture: Import boundaries', () => {
   });
 
   it('should only export public API through src/index.ts', () => {
+    // Arrange
     const indexContent = fs.readFileSync('src/index.ts', 'utf-8');
     const allFiles = getTypeScriptFiles('src');
     const violations: string[] = [];
 
-    // Check that no src/ file other than index.ts re-exports from other modules
+    // Act — check that no src/ file other than index.ts re-exports from other modules
     // (barrel re-exports from submodule index.ts files are fine for internal use)
     for (const file of allFiles) {
       const relative = path.relative('.', file);
@@ -187,7 +209,7 @@ describe('Architecture: Import boundaries', () => {
 
       for (const [i, line] of lines.entries()) {
         // Check for re-exports: export { ... } from or export * from
-        if (/^export\s+(\{[^}]+\}|\*)\s+from\s+['"]/.test(line)) {
+        if (/^export\s+(?:type\s+)?(\{[^}]+\}|\*(?:\s+as\s+\w+)?)\s+from\s+['"]/.test(line)) {
           // Allow re-exports within the same submodule (e.g., drain/index.ts re-exporting drain/drain.ts)
           // This is already skipped by the index.ts check above
           // Flag re-exports that cross module boundaries in non-index files
@@ -206,6 +228,7 @@ describe('Architecture: Import boundaries', () => {
       }
     }
 
+    // Assert
     if (violations.length > 0) {
       expect.fail(
         `Found ${violations.length} export boundary violation(s):\n\n` +
@@ -213,7 +236,7 @@ describe('Architecture: Import boundaries', () => {
       );
     }
 
-    // Verify index.ts actually exports the expected public API
+    // Assert — verify index.ts actually exports the expected public API
     expect(indexContent).toContain('compress');
     expect(indexContent).toContain('compressText');
     expect(indexContent).toContain('createDrain');

@@ -72,29 +72,43 @@ while IFS= read -r file; do
   # Determine if this is a test file
   IS_TEST=false
   case "$file" in
-    *.test.* | *.spec.* | *__tests__* | test_*) IS_TEST=true ;;
+    *.test.* | *.spec.* | *__tests__* | */test_*) IS_TEST=true ;;
   esac
 
   while IFS= read -r line; do
     LINE_NUM=$((LINE_NUM + 1))
 
-    # Skip comment lines; strip inline comments so commented-out code is not flagged
-    TRIMMED=$(echo "$line" | sed 's/^[[:space:]]*//')
+    # Trim leading whitespace using parameter expansion (no subprocess)
+    TRIMMED="${line#"${line%%[![:space:]]*}"}"
+
+    # Skip comment lines
     case "$TRIMMED" in
       "//"*|"#"*|"*"*|"/*"*) continue ;;
     esac
-    TRIMMED=$(echo "$TRIMMED" | sed -e 's|//.*$||' -e 's|/\*.*\*/||g')
 
-    # --- Hardcoded Secrets ---
-    if echo "$TRIMMED" | grep -qiE "(api_key|apikey|secret|password|token|private_key)\s*[:=]\s*['\"][A-Za-z0-9+/=_-]{8,}" 2>/dev/null; then
+    # Strip inline // comments and /* ... */ comments using parameter expansion
+    TRIMMED="${TRIMMED%%//*}"
+    # Handle inline block comments: remove /* ... */ segments
+    while [[ "$TRIMMED" == *"/*"*"*/"* ]]; do
+      local_prefix="${TRIMMED%%/\**}"
+      local_suffix="${TRIMMED#*\*/}"
+      TRIMMED="${local_prefix}${local_suffix}"
+    done
+
+    # --- Hardcoded Secrets (case-insensitive via nocasematch) ---
+    shopt -s nocasematch
+    if [[ "$TRIMMED" =~ (api_key|apikey|secret|password|token|private_key)[[:space:]]*[:=][[:space:]]*[\'\"][A-Za-z0-9+/=_-]{8,} ]]; then
+      shopt -u nocasematch
       case "$file" in
         *.example | *.example.* | *.template | *.template.*) ;;
         *) warn "Possible hardcoded secret" "$file" "$LINE_NUM" ;;
       esac
+    else
+      shopt -u nocasematch
     fi
 
     # --- eval() Usage ---
-    if echo "$TRIMMED" | grep -qE "\beval\s*\(" 2>/dev/null; then
+    if [[ "$TRIMMED" =~ (^|[^a-zA-Z0-9_])eval[[:space:]]*\( ]]; then
       warn "eval() usage — code injection risk" "$file" "$LINE_NUM"
     fi
 
@@ -103,7 +117,7 @@ while IFS= read -r file; do
       case "$file" in
         *cli.ts | *cli.js) ;; # CLI is allowed to log
         *)
-          if echo "$TRIMMED" | grep -qE "console\.(log|debug)\(" 2>/dev/null; then
+          if [[ "$TRIMMED" =~ console\.(log|debug)\( ]]; then
             warn "console.log() in library source (use structured output)" "$file" "$LINE_NUM"
           fi
           ;;
