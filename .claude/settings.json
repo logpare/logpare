@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm gates*)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm typecheck*)",
+      "Bash(pnpm build*)",
+      "Bash(pnpm bench*)",
+      "Bash(pnpm install*)",
+      "Bash(pnpm dev*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(gh *)",
+      "Bash(bash scripts/security-check.sh*)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git add --force*)",
+      "Bash(git add -f *)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(curl *)"
+    ]
+  }
+}
