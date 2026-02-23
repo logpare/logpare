@@ -17,7 +17,14 @@ pnpm test test/drain.test.ts        # Run a single test file
 pnpm test -t "should discover"      # Run tests matching pattern
 pnpm typecheck                      # Type check without emitting
 pnpm bench                          # Run benchmarks
+pnpm gates                          # Run all quality checks (typecheck + test + build)
 ```
+
+## Quality Gates
+
+**Always run `pnpm gates` before finishing any task.** This runs typecheck, tests, and build in sequence, stopping on the first failure. The pre-commit hook runs `pnpm typecheck` automatically.
+
+Security scanning is available via `bash scripts/security-check.sh` (or `--strict` in CI).
 
 ## Code Architecture
 
@@ -151,9 +158,17 @@ The codebase uses strict TypeScript settings including:
 ## Development Workflow
 
 1. Make changes to source files in `src/`
-2. Run `pnpm typecheck` to verify types
-3. Run `pnpm test` to run all tests
-4. Run `pnpm build` to generate dist/ output
+2. Run `pnpm gates` to verify types, run tests, and build
+3. The pre-commit hook will run `pnpm typecheck` automatically on commit
+
+## Architecture Boundaries
+
+Dependencies flow inward — violations are enforced by `test/architecture.test.ts`:
+
+- `preprocessing/` and `output/` are leaf modules — they must not import from each other, `drain/`, `api.ts`, or `cli.ts`
+- `drain/` must not import from `api.ts` or `cli.ts`
+- `types.ts` must not import from any project module
+- Only `src/index.ts` aggregates cross-module exports
 
 ## Pull Request Workflow
 
@@ -212,6 +227,7 @@ test/
 ├── preprocessing.test.ts # Pattern matching tests
 ├── api.test.ts           # Public API and fixture tests
 ├── cli.test.ts           # CLI integration tests (ESM/CJS)
+├── architecture.test.ts  # Import boundary enforcement
 ├── compress.bench.ts     # Compression benchmarks
 └── fixtures/
     ├── hdfs.log          # Hadoop filesystem logs
