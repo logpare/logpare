@@ -165,7 +165,7 @@ describe('Architecture: Import boundaries', () => {
 
           for (const forbidden of resolvedForbidden) {
             const isMatch = forbidden.original.endsWith('/')
-              ? resolvedImport.startsWith(forbidden.resolved) || resolvedImport + '/' === forbidden.resolved + '/'
+              ? resolvedImport === forbidden.resolved || resolvedImport.startsWith(forbidden.resolved + path.sep)
               : resolvedImport === forbidden.resolved || resolvedImport.startsWith(forbidden.resolved + '/') || resolvedImport.startsWith(forbidden.resolved + '.');
             if (isMatch) {
               violations.push(
