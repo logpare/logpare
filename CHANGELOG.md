@@ -58,6 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - compute true F1 in calculateF1ParsingAccuracy
 - address CodeRabbit review comments on changelog automation
 - validate CLI option ranges for depth, threshold, max-lines
+- add search API route and enable structuredData indexing
+- use staticGET for pre-rendered search index
 - harden safety patterns and remove non-null assertions
 - address review findings in security scanner, architecture tests, and session hook
 - harden session hook, security scanner, and architecture tests
