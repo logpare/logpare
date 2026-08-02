@@ -71,7 +71,10 @@ export interface CompressionResult {
 
   /** Compression statistics */
   stats: {
-    /** Total input lines processed */
+    /**
+     * Total input lines processed. Blank and whitespace-only lines are excluded,
+     * so a trailing newline does not change this figure.
+     */
     inputLines: number;
 
     /** Number of unique templates discovered */
@@ -82,6 +85,12 @@ export interface CompressionResult {
 
     /** Estimated token reduction percentage */
     estimatedTokenReduction: number;
+
+    /**
+     * Lines discarded because `maxClusters` was reached. Non-zero means the
+     * output is incomplete and `compressionRatio` overstates the real result.
+     */
+    droppedLines: number;
 
     /** Processing time in milliseconds (optional) */
     processingTimeMs?: number;

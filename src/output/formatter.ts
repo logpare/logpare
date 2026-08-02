@@ -36,6 +36,12 @@ export function formatSummary(
     `Input: ${stats.inputLines.toLocaleString()} lines → ${stats.uniqueTemplates} templates ` +
     `(${(stats.compressionRatio * 100).toFixed(1)}% reduction)`
   );
+  if (stats.droppedLines > 0) {
+    lines.push(
+      `WARNING: ${stats.droppedLines.toLocaleString()} lines dropped (maxClusters reached). ` +
+      `Output is incomplete; raise maxClusters for full coverage.`
+    );
+  }
   lines.push('');
 
   if (templates.length === 0) {
@@ -91,6 +97,12 @@ export function formatDetailed(
     `(${(stats.compressionRatio * 100).toFixed(1)}% reduction)`
   );
   lines.push(`Estimated token reduction: ${(stats.estimatedTokenReduction * 100).toFixed(1)}%`);
+  if (stats.droppedLines > 0) {
+    lines.push(
+      `WARNING: ${stats.droppedLines.toLocaleString()} lines dropped (maxClusters reached). ` +
+      `Output is incomplete; raise maxClusters for full coverage.`
+    );
+  }
   lines.push('');
 
   if (templates.length === 0) {

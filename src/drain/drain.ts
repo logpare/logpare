@@ -48,11 +48,13 @@ export class Drain {
   private readonly clusters: LogCluster[];
   private readonly strategy: ParsingStrategy;
   private readonly depth: number;
+  private readonly simThreshold: number | undefined;
   private readonly maxChildren: number;
   private readonly maxClusters: number;
   private readonly maxSamples: number;
   private readonly onProgress: ProgressCallback | undefined;
   private lineCount: number;
+  private droppedLines: number;
   private nextClusterId: number;
 
   constructor(options: DrainOptions = {}) {
@@ -60,11 +62,15 @@ export class Drain {
     this.clusters = [];
     this.strategy = options.preprocessing ?? defaultStrategy;
     this.depth = options.depth ?? DEFAULTS.depth;
+    // Left undefined when not supplied so the strategy stays authoritative.
+    // An explicit option overrides the strategy; see findBestMatch().
+    this.simThreshold = options.simThreshold;
     this.maxChildren = options.maxChildren ?? DEFAULTS.maxChildren;
     this.maxClusters = options.maxClusters ?? DEFAULTS.maxClusters;
     this.maxSamples = options.maxSamples ?? DEFAULTS.maxSamples;
     this.onProgress = options.onProgress;
     this.lineCount = 0;
+    this.droppedLines = 0;
     this.nextClusterId = 1;
   }
 
@@ -72,9 +78,8 @@ export class Drain {
    * Process a single log line.
    */
   addLogLine(line: string): LogCluster | null {
-    const lineIndex = this.lineCount++;
-
-    // Skip empty lines
+    // Skip empty lines before counting them — a trailing newline would
+    // otherwise inflate lineCount and, with it, the reported compression ratio.
     const trimmed = line.trim();
     if (trimmed.length === 0) {
       return null;
@@ -88,6 +93,8 @@ export class Drain {
       return null;
     }
 
+    const lineIndex = this.lineCount++;
+
     // Search for matching cluster
     const matchedCluster = this.treeSearch(tokens);
 
@@ -98,8 +105,11 @@ export class Drain {
       return matchedCluster;
     }
 
-    // Create new cluster if under limit
+    // Create new cluster if under limit. Past the cap the line is discarded
+    // entirely, so record it — otherwise the compression ratio silently improves
+    // as data is thrown away.
     if (this.clusters.length >= this.maxClusters) {
+      this.droppedLines++;
       return null;
     }
 
@@ -252,7 +262,9 @@ export class Drain {
     let bestCluster: LogCluster | null = null;
     let bestSimilarity = 0;
 
-    const threshold = this.strategy.getSimThreshold(node.depth);
+    // An explicitly configured simThreshold wins; otherwise defer to the
+    // strategy, which may vary the threshold by depth.
+    const threshold = this.simThreshold ?? this.strategy.getSimThreshold(node.depth);
 
     for (const cluster of node.clusters) {
       const similarity = cluster.computeSimilarity(tokens);
@@ -325,8 +337,10 @@ export class Drain {
       return false;
     }
 
-    // If we have wildcard child and are at capacity, use wildcard
-    if (node.hasChild(WILDCARD_KEY) && node.childCount >= this.maxChildren) {
+    // At capacity, collapse into the wildcard branch. This must not depend on
+    // looksLikeVariable() or on a wildcard child already existing, or a node
+    // that only ever sees alphabetic tokens grows without bound.
+    if (node.childCount >= this.maxChildren) {
       return true;
     }
 
@@ -441,6 +455,7 @@ export class Drain {
       uniqueTemplates,
       compressionRatio: Math.max(0, Math.min(1, compressionRatio)),
       estimatedTokenReduction: Math.max(0, Math.min(1, estimatedTokenReduction)),
+      droppedLines: this.droppedLines,
     };
   }
 
