@@ -8,13 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- add `stats.droppedLines` reporting lines discarded once `maxClusters` is reached,
-  with a warning line in the summary and detailed output
-- add `clockTime` preprocessing pattern for syslog-style `HH:MM:SS` timestamps
-- add test coverage for `detectSeverity`, `isStackFrame`, and all five diagnostic
-  extractors, the `Template` diagnostic fields, `onProgress`, `preprocessing`,
-  and `simThreshold` (previously untested)
-- add MCP server test suite and wire `packages/mcp` and `docs` into CI
 - add AI-forward DX with Cursor rules and Claude Agent Skills
 - add homepage with terminal-style design
 - add blog with announcement post
@@ -33,32 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - automate changelog generation with git-cliff
 - add Vercel analytics
 - add AI-agent safety guardrails and developer tooling
+- cover untested exports and make parsing accuracy measurable
 
 ### Changed
 
-- **BREAKING (behavioral):** blank lines no longer count toward `stats.inputLines`, so a
-  trailing newline no longer inflates the reported compression ratio
-- **BREAKING (behavioral):** `url` is now applied before `filePath` and the network
-  patterns, and adjacent wildcards collapse into one — templates containing URLs or
-  `ip:port` pairs change shape (`src: /<*><*>` becomes `src: /<*>`)
-- drop end-of-life Node 20 from `engines` and CI; baseline is now `^22 || >=24`
 - simplify codebase and update package practices
 - migrate MCP CLI to parseArgs, replace formatter switch with map
 
 ### Fixed
 
-- fix `simThreshold` being silently ignored — it was accepted by `createDrain()`,
-  `compress()`, and the CLI, validated, then discarded, leaving `0.0` and `0.99`
-  indistinguishable. Default behavior is unchanged
-- fix `maxChildren` not being enforced for non-variable-looking tokens, which let a
-  parse-tree node grow without bound regardless of the configured cap
-- fix the `logpare-mcp` binary failing to start with `SyntaxError` due to a duplicate
-  shebang emitted by the tsup banner
-- fix `port` fragmenting syslog clock times such as `15:16:01` into three wildcards
-- fix `extractStatusCodes` not recognizing the documented `code=200` / `status=404` forms
-- fix parsing accuracy being unmeasurable (pinned at 0%) because ground-truth templates
-  omitted the log header that logpare masks; PA and F1-PA are now asserted
-- fix compression-ratio checks that lived in `bench()` cases and asserted nothing
 - address CodeRabbit PR review issues
 - address additional CodeRabbit review comments
 - address CodeQL incomplete string escaping vulnerabilities
@@ -89,6 +65,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - address review findings in security scanner, architecture tests, and session hook
 - harden session hook, security scanner, and architecture tests
 - require path separator in directory-match boundary check
+- register the SessionStart dependency-install hook
+- honour simThreshold, enforce maxChildren, report dropped lines
+- correct pattern ordering and collapse adjacent wildcards
+- repair the unrunnable logpare-mcp binary
+- address CodeRabbit review on #23
 ## [0.0.5] - 2026-01-01
 
 ### Added
