@@ -13,12 +13,12 @@ export default defineConfig([
     dts: false,
     clean: true,
     sourcemap: true,
-    target: 'node20',
+    target: 'node22',
     outDir: 'dist',
     external: ['logpare'],
-    banner: {
-      js: '#!/usr/bin/env node',
-    },
+    // No `banner` shebang here: src/cli.ts already starts with one and tsup
+    // preserves it. Adding a banner emits a second shebang on line 2, which is a
+    // syntax error and makes the built `logpare-mcp` binary unrunnable.
     define: {
       '__VERSION__': JSON.stringify(version),
     },
@@ -30,7 +30,7 @@ export default defineConfig([
     dts: true,
     clean: true, // tsup handles duplicate cleaning gracefully
     sourcemap: true,
-    target: 'node20',
+    target: 'node22',
     outDir: 'dist',
     external: ['logpare'],
   },

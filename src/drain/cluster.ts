@@ -127,13 +127,25 @@ export class LogCluster {
       this.sampleVariables.push(variables);
     }
 
-    // Extract and store diagnostic samples from original line
+    // Extract and store diagnostic samples from original line.
+    // Each extractor is skipped once its target is full — on a hot template these
+    // run for every one of millions of matching lines and dominate the per-line cost.
     if (originalLine) {
-      addUniqueSamples(this.urlSamples, this.sampleLimits.url, extractUrls(originalLine));
-      addUniqueSamples(this.fullUrlSamples, this.sampleLimits.url, extractFullUrls(originalLine));
-      addUniqueSamples(this.statusCodeSamples, this.sampleLimits.statusCode, extractStatusCodes(originalLine));
-      addUniqueSamples(this.correlationIdSamples, this.sampleLimits.correlationId, extractCorrelationIds(originalLine));
-      addUniqueSamples(this.durationSamples, this.sampleLimits.duration, extractDurations(originalLine));
+      if (this.urlSamples.length < this.sampleLimits.url) {
+        addUniqueSamples(this.urlSamples, this.sampleLimits.url, extractUrls(originalLine));
+      }
+      if (this.fullUrlSamples.length < this.sampleLimits.url) {
+        addUniqueSamples(this.fullUrlSamples, this.sampleLimits.url, extractFullUrls(originalLine));
+      }
+      if (this.statusCodeSamples.length < this.sampleLimits.statusCode) {
+        addUniqueSamples(this.statusCodeSamples, this.sampleLimits.statusCode, extractStatusCodes(originalLine));
+      }
+      if (this.correlationIdSamples.length < this.sampleLimits.correlationId) {
+        addUniqueSamples(this.correlationIdSamples, this.sampleLimits.correlationId, extractCorrelationIds(originalLine));
+      }
+      if (this.durationSamples.length < this.sampleLimits.duration) {
+        addUniqueSamples(this.durationSamples, this.sampleLimits.duration, extractDurations(originalLine));
+      }
     }
 
     return variables;

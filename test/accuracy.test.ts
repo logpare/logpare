@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDrain } from '../src/drain/index.js';
+import { compress, compressText } from '../src/api.js';
 import {
   evaluateParsing,
   formatEvalReport,
@@ -15,6 +16,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 interface GroundTruthFixture {
   description: string;
   source: string;
+  /** Leading whitespace-separated fields of `content` stripped from `template`. */
+  headerTokens: number;
+  headerNote: string;
   templates: Record<string, string>;
   entries: Array<{
     lineNumber: number;
@@ -22,6 +26,18 @@ interface GroundTruthFixture {
     templateId: string;
     template: string;
   }>;
+}
+
+/**
+ * Align a LogHub-convention ground-truth template with what logpare produces.
+ *
+ * The fixture strips the log header (date, time, pid) from its templates, as the
+ * published LogHub corpora do. logpare is handed the full line and masks those
+ * fields to wildcards, so without this the two can never agree and parsing
+ * accuracy is pinned at 0% no matter how good the parser is.
+ */
+function withHeader(template: string, headerTokens: number): string {
+  return `${'<*> '.repeat(headerTokens)}${template}`;
 }
 
 describe('Parsing Accuracy', () => {
@@ -61,7 +77,7 @@ describe('Parsing Accuracy', () => {
       groundTruth.push({
         content: entry.content,
         templateId: entry.templateId,
-        template: entry.template,
+        template: withHeader(entry.template, fixture.headerTokens),
       });
 
       predictions.push({
@@ -81,6 +97,15 @@ describe('Parsing Accuracy', () => {
     // These thresholds are based on LogEval benchmarks for Drain
     expect(result.f1GroupingAccuracy).toBeGreaterThanOrEqual(0.85);
     expect(result.groupingAccuracy).toBeGreaterThanOrEqual(0.9);
+
+    // Template-string quality. These were computed and printed but never asserted,
+    // which is how the filePath/url ordering bug and the syslog clock-time
+    // fragmentation both shipped unnoticed. The thresholds are deliberately set at
+    // the current achievable level so a regression fails the build; raising them is
+    // tracked with the remaining template-quality work (see the audit report).
+    // Currently PA ~44.8%, F1-PA ~36.4% (3 of 6 templates reproduced exactly).
+    expect(result.parsingAccuracy).toBeGreaterThanOrEqual(0.4);
+    expect(result.f1ParsingAccuracy).toBeGreaterThanOrEqual(0.3);
   });
 
   it('should correctly count template statistics', () => {
@@ -217,5 +242,35 @@ describe('json-stable output format', () => {
     // No newlines or extra spaces in compact output
     expect(result.formatted).not.toContain('\n');
     expect(result.formatted).not.toMatch(/:\s{2,}/);
+  });
+});
+
+/**
+ * Compression-ratio thresholds. These previously lived in test/compress.bench.ts as
+ * `bench()` cases whose comments claimed thresholds the framework never checked —
+ * `bench()` reports timing and discards the returned value.
+ */
+describe('Compression Ratio', () => {
+  it('compresses the HDFS fixture substantially', () => {
+    const fixturePath = join(__dirname, 'fixtures/hdfs.log');
+    const result = compressText(readFileSync(fixturePath, 'utf-8'));
+
+    expect(result.stats.compressionRatio).toBeGreaterThan(0.5);
+    expect(result.stats.droppedLines).toBe(0);
+  });
+
+  it('achieves near-total compression on identical lines', () => {
+    const lines = Array.from({ length: 10_000 }, () => 'INFO Request processed successfully');
+    const result = compress(lines);
+
+    expect(result.stats.uniqueTemplates).toBe(1);
+    expect(result.stats.compressionRatio).toBeGreaterThan(0.99);
+  });
+
+  it('reports a ratio bounded to [0, 1]', () => {
+    const result = compress(['INFO only one line']);
+
+    expect(result.stats.compressionRatio).toBeGreaterThanOrEqual(0);
+    expect(result.stats.compressionRatio).toBeLessThanOrEqual(1);
   });
 });

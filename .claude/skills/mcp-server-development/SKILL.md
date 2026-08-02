@@ -16,6 +16,14 @@ Activate this skill when:
 - Exposing logpare functionality to MCP-compatible clients
 - Creating custom log analysis workflows for AI assistants
 
+> **Status note (2026-08-02):** logpare already ships an MCP server at
+> `packages/mcp` (`@logpare/mcp`). It targets spec revision `2025-11-25` via the
+> monolithic `@modelcontextprotocol/sdk` and the low-level `Server` +
+> `setRequestHandler` API. The current spec revision is `2026-07-28`, which is stateless
+> (no `initialize` handshake), requires `server/discover`, and deprecates Roots,
+> Sampling, and Logging. Treat the walkthrough below as describing the existing
+> implementation, not current best practice, until that migration lands.
+
 ## What is MCP?
 
 Model Context Protocol (MCP) is Anthropic's open standard for connecting AI agents to external tools and data sources. MCP servers expose:
@@ -582,6 +590,6 @@ Connect to Grafana/Datadog via MCP, compress logs before sending to LLM.
 
 ## References
 
-- [MCP Specification](https://spec.modelcontextprotocol.io/)
+- [MCP Specification](https://modelcontextprotocol.io/specification/2026-07-28) — current revision
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
-- [Official MCP Servers](https://github.com/anthropics/mcp-servers)
+- [Official MCP Servers](https://github.com/modelcontextprotocol/servers)

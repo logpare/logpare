@@ -92,17 +92,22 @@ interface CompressionStats {
 Options for `compress()` and `compressText()`.
 
 ```typescript
-interface CompressOptions extends DrainOptions {
+interface CompressOptions {
   format?: OutputFormat;
   maxTemplates?: number;
+  /** Drain algorithm options are nested, not inherited */
+  drain?: DrainOptions;
 }
 ```
 
 **Fields:**
 
-- `format` - Output format: `'summary'`, `'detailed'`, or `'json'` (default: `'summary'`)
+- `format` - Output format: `'summary'`, `'detailed'`, `'json'`, or `'json-stable'`
+  (default: `'summary'`). `'json-stable'` sorts keys and omits volatile fields for
+  stable diffs and LLM KV-cache hits.
 - `maxTemplates` - Maximum templates in formatted output (default: `50`)
-- Plus all fields from `DrainOptions`
+- `drain` - Nested `DrainOptions`. These are **not** accepted at the top level —
+  pass them as `{ drain: { depth: 5 } }`.
 
 ### DrainOptions
 
@@ -233,12 +238,14 @@ Automatically detected from log content:
 Output format for compression results.
 
 ```typescript
-type OutputFormat = 'summary' | 'detailed' | 'json';
+type OutputFormat = 'summary' | 'detailed' | 'json' | 'json-stable';
 ```
 
 - `'summary'` - Compact template list with frequencies
 - `'detailed'` - Full templates with all metadata
 - `'json'` - Machine-readable JSON
+- `'json-stable'` - Cache-optimized JSON with sorted keys and volatile fields omitted,
+  for maximum LLM KV-cache hits and stable diffs
 
 ## Constants
 

@@ -1,6 +1,8 @@
 {
   "description": "Ground truth annotations for HDFS log parsing evaluation",
   "source": "test/fixtures/hdfs.log",
+  "headerTokens": 3,
+  "headerNote": "Templates follow the LogHub convention: the leading headerTokens whitespace-separated fields of content (date, time, pid) are stripped. logpare is fed the full line and masks those fields, so parsing-accuracy comparisons must prepend headerTokens wildcards to each template.",
   "templates": {
     "E1": "INFO dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating",
     "E2": "INFO dfs.DataNode$DataXceiver: Receiving block <*> src: <*> dest: <*>",

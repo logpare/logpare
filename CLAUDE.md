@@ -28,9 +28,12 @@ Security scanning is available via `bash scripts/security-check.sh` (or `--stric
 
 ## Code Architecture
 
-```
-src/
-├── index.ts              # Public API exports
+This is a pnpm workspace (`pnpm-workspace.yaml`): the repo root **is** the published
+`logpare` package, with two additional workspace members.
+
+```text
+src/                      # The logpare package itself (published to npm)
+├── index.ts              # Public API exports — the ONLY public surface
 ├── api.ts                # compress() and compressText() functions
 ├── cli.ts                # CLI entry point (bin/logpare)
 ├── types.ts              # TypeScript interfaces
@@ -46,7 +49,30 @@ src/
 └── output/
     ├── formatter.ts      # Summary, detailed, JSON formatters
     └── index.ts          # Module exports
+
+packages/mcp/             # @logpare/mcp — MCP server exposing logpare to AI agents
+├── src/index.ts          # Server: 4 tools, 4 resources, 5 prompts (stdio transport)
+├── src/cli.ts            # bin/logpare-mcp; --ucp flag, --test self-check
+└── src/ucp/              # Universal Commerce Protocol extension
+
+docs/                     # logpare-docs — Next.js + Fumadocs site (private, Vercel)
+└── content/docs/         # MDX documentation source
+
+scripts/security-check.sh # Secret/eval/console scanner (--strict to fail)
 ```
+
+### Agent tooling
+
+| Path | Purpose |
+|------|---------|
+| `.claude/skills/` | Five Agent Skills: compression-tuning, custom-preprocessing, debugging-templates, mcp-server-development, contributing-development |
+| `.claude/commands/gates.md` | `/gates` slash command |
+| `.claude/hooks/session-start.sh` | SessionStart hook — installs deps before work begins (registered in `.claude/settings.json`) |
+| `.claude/settings.json` | Permission allow/deny lists and hook registration |
+| `.cursor/rules/*.mdc` | Cursor rules; `003-architecture.mdc` is enforced at CI time by `test/architecture.test.ts` |
+
+**Note:** the root `pnpm typecheck`/`test`/`build` scripts cover `src/` only. Use
+`pnpm -r` or `--filter` when changing `packages/mcp` or `docs`.
 
 ## Public API
 
@@ -57,6 +83,7 @@ compressText(text: string, options?: CompressOptions): CompressionResult;
 
 // Advanced: direct Drain access for incremental processing
 createDrain(options?: DrainOptions): Drain;
+Drain                 // The class itself is also exported (for `instanceof`, subclassing)
 
 // Custom preprocessing strategies
 defineStrategy(overrides: Partial<ParsingStrategy>): ParsingStrategy;
@@ -68,7 +95,13 @@ STACK_FRAME_PATTERNS  // Regex patterns for stack frame detection
 // Utility functions for log analysis
 detectSeverity(line: string): Severity;
 isStackFrame(line: string): boolean;
-extractUrls(line: string): string[];
+
+// Diagnostic extractors — these back the Template.*Samples fields and are public
+extractUrls(line: string): string[];             // hostnames
+extractFullUrls(line: string): string[];         // complete URLs
+extractStatusCodes(line: string): number[];      // HTTP status codes
+extractCorrelationIds(line: string): string[];   // trace/request IDs
+extractDurations(line: string): string[];        // timing values
 
 // Progress reporting types
 type Severity = 'error' | 'warning' | 'info';
@@ -131,7 +164,7 @@ interface CompressionResult {
 
 The parse tree navigates logs to clusters efficiently:
 
-```
+```text
 Level 0 (root)
 └── Level 1: Token count (e.g., "5" for 5-token lines)
     └── Level 2: First token (e.g., "ERROR", "INFO")
@@ -172,9 +205,13 @@ Dependencies flow inward — violations are enforced by `test/architecture.test.
 
 ## Pull Request Workflow
 
-When work is complete and ready for review, create the PR directly using the GitHub CLI:
+Only create a PR when it has been explicitly asked for. When it has:
 
-1. **Always create PRs directly** - Use `gh pr create --title "..." --body "..."` to create the PR. Never just provide a link to `/pull/new/branch-name`.
+1. **Always create the PR directly** - never just hand back a link to
+   `/pull/new/branch-name`. Use whichever mechanism is available:
+   - `gh pr create --title "..." --body "..."` when the GitHub CLI is installed.
+   - The GitHub MCP tools (`create_pull_request`) otherwise. `gh` is **not** available
+     in Claude Code on the web, so do not assume it exists — check first.
 
 2. **Use conventional commit format for titles**:
    - `feat:` - New features
@@ -199,9 +236,10 @@ When work is complete and ready for review, create the PR directly using the Git
    - Additional verification steps
    ```
 
-4. **After creating the PR** - Always report the actual PR URL returned by `gh pr create` so the user can access it directly.
+4. **After creating the PR** - Always report the actual PR URL returned by the create
+   call so the user can access it directly.
 
-Example:
+Example (GitHub CLI form; use the equivalent MCP call where `gh` is unavailable):
 ```bash
 gh pr create --title "feat: add streaming compression API" --body "$(cat <<'EOF'
 ## Summary
@@ -221,16 +259,20 @@ EOF
 
 ## Test Structure
 
-```
+```text
 test/
 ├── drain.test.ts         # Core algorithm tests
 ├── preprocessing.test.ts # Pattern matching tests
+├── patterns.test.ts      # Severity, stack-frame, and diagnostic extractor tests
 ├── api.test.ts           # Public API and fixture tests
-├── cli.test.ts           # CLI integration tests (ESM/CJS)
+├── accuracy.test.ts      # GA/PA/F1 against ground truth + json-stable determinism
+├── cli.test.ts           # CLI integration tests (ESM/CJS) — requires `pnpm build` first
 ├── architecture.test.ts  # Import boundary enforcement
-├── compress.bench.ts     # Compression benchmarks
+├── compress.bench.ts     # Compression benchmarks (`pnpm bench`, excluded from `pnpm test`)
+├── utils/eval-metrics.ts # GA/PA/F1 implementations (helper, not a test)
 └── fixtures/
     ├── hdfs.log          # Hadoop filesystem logs
+    ├── hdfs-ground-truth.json  # Labelled templates for accuracy scoring
     ├── spark.log         # Spark processing logs
     └── linux.log         # System logs
 ```
@@ -275,6 +317,8 @@ Extraction patterns support common formats:
 - `summary` - Compact template list with frequencies, plus rare events section (≤5 occurrences)
 - `detailed` - Full templates with sample variables, severity, line numbers, and all diagnostic metadata
 - `json` - Machine-readable JSON with version field (`"version": "1.1"`)
+- `json-stable` - Same data with deterministically sorted keys and no volatile fields,
+  for diffing and snapshot testing
 
 ## Version Bump Checklist
 
