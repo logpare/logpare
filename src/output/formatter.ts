@@ -22,6 +22,23 @@ function sortObjectKeys(value: unknown): unknown {
 }
 
 /**
+ * Build the truncation warning, or null when nothing was dropped.
+ *
+ * `droppedLines` is optional on the interface for backwards compatibility, so
+ * treat an absent value as zero.
+ */
+function formatDroppedWarning(droppedLines: number | undefined): string | null {
+  if (droppedLines === undefined || droppedLines <= 0) {
+    return null;
+  }
+
+  return (
+    `WARNING: ${droppedLines.toLocaleString()} lines dropped (maxClusters reached). ` +
+    `Output is incomplete; raise maxClusters for full coverage.`
+  );
+}
+
+/**
  * Format templates as a compact summary.
  */
 export function formatSummary(
@@ -36,11 +53,9 @@ export function formatSummary(
     `Input: ${stats.inputLines.toLocaleString()} lines → ${stats.uniqueTemplates} templates ` +
     `(${(stats.compressionRatio * 100).toFixed(1)}% reduction)`
   );
-  if (stats.droppedLines > 0) {
-    lines.push(
-      `WARNING: ${stats.droppedLines.toLocaleString()} lines dropped (maxClusters reached). ` +
-      `Output is incomplete; raise maxClusters for full coverage.`
-    );
+  const droppedWarning = formatDroppedWarning(stats.droppedLines);
+  if (droppedWarning !== null) {
+    lines.push(droppedWarning);
   }
   lines.push('');
 
@@ -97,11 +112,9 @@ export function formatDetailed(
     `(${(stats.compressionRatio * 100).toFixed(1)}% reduction)`
   );
   lines.push(`Estimated token reduction: ${(stats.estimatedTokenReduction * 100).toFixed(1)}%`);
-  if (stats.droppedLines > 0) {
-    lines.push(
-      `WARNING: ${stats.droppedLines.toLocaleString()} lines dropped (maxClusters reached). ` +
-      `Output is incomplete; raise maxClusters for full coverage.`
-    );
+  const droppedWarning = formatDroppedWarning(stats.droppedLines);
+  if (droppedWarning !== null) {
+    lines.push(droppedWarning);
   }
   lines.push('');
 

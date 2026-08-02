@@ -102,9 +102,12 @@ interface CompressOptions {
 
 **Fields:**
 
-- `format` - Output format: `'summary'`, `'detailed'`, or `'json'` (default: `'summary'`)
+- `format` - Output format: `'summary'`, `'detailed'`, `'json'`, or `'json-stable'`
+  (default: `'summary'`). `'json-stable'` sorts keys and omits volatile fields for
+  stable diffs and LLM KV-cache hits.
 - `maxTemplates` - Maximum templates in formatted output (default: `50`)
-- Plus all fields from `DrainOptions`
+- `drain` - Nested `DrainOptions`. These are **not** accepted at the top level —
+  pass them as `{ drain: { depth: 5 } }`.
 
 ### DrainOptions
 

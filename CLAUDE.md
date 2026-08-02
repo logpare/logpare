@@ -31,7 +31,7 @@ Security scanning is available via `bash scripts/security-check.sh` (or `--stric
 This is a pnpm workspace (`pnpm-workspace.yaml`): the repo root **is** the published
 `logpare` package, with two additional workspace members.
 
-```
+```text
 src/                      # The logpare package itself (published to npm)
 ├── index.ts              # Public API exports — the ONLY public surface
 ├── api.ts                # compress() and compressText() functions
@@ -164,7 +164,7 @@ interface CompressionResult {
 
 The parse tree navigates logs to clusters efficiently:
 
-```
+```text
 Level 0 (root)
 └── Level 1: Token count (e.g., "5" for 5-token lines)
     └── Level 2: First token (e.g., "ERROR", "INFO")
@@ -259,7 +259,7 @@ EOF
 
 ## Test Structure
 
-```
+```text
 test/
 ├── drain.test.ts         # Core algorithm tests
 ├── preprocessing.test.ts # Pattern matching tests

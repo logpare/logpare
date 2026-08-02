@@ -89,8 +89,11 @@ export interface CompressionResult {
     /**
      * Lines discarded because `maxClusters` was reached. Non-zero means the
      * output is incomplete and `compressionRatio` overstates the real result.
+     *
+     * Optional for backwards compatibility with code that constructs this object;
+     * logpare itself always populates it.
      */
-    droppedLines: number;
+    droppedLines?: number;
 
     /** Processing time in milliseconds (optional) */
     processingTimeMs?: number;

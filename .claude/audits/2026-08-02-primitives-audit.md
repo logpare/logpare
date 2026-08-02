@@ -105,7 +105,7 @@ patterns over 20 000 chars, and `numbers` over 50 000 consecutive digits all ≤
 `packages/mcp/src/cli.ts` starts with a shebang **and** `tsup.config.ts` injected one via
 `banner`, so `dist/cli.js` carried two — the second on line 2, which is a syntax error:
 
-```
+```text
 SyntaxError: Invalid or unexpected token
 ```
 
@@ -211,15 +211,21 @@ compiler. Low risk here — nothing in this repo uses the compiler API.
 ### 5.5 Skill modernization
 
 SKILL.md is now a cross-agent standard (Claude Code, Codex CLI, Cursor, Gemini CLI,
-Copilot) and has gained `allowed-tools`, `disable-model-invocation`, `user-invocable`,
-and `context: fork`. The five skills use only `name` and `description`. Adding
-`allowed-tools` to the read-only ones would be a cheap safety win.
+Copilot). The five skills use only `name` and `description`. Two tiers of additional
+fields are available, and only the first is portable:
+
+- **Agent Skills spec:** optional `license`, `compatibility`, `metadata`, plus
+  experimental `allowed-tools`.
+- **Claude Code extensions:** `disable-model-invocation`, `user-invocable`,
+  `context: fork` — ignored safely by other agents, but not portable spec fields.
+
+Adding `allowed-tools` to the read-only skills would be a cheap safety win.
 
 ---
 
 ## 6. Verification performed
 
-```
+```shell
 pnpm gates                              # typecheck + 157 tests + build — green
 pnpm --filter @logpare/mcp test         # 5 tests — green
 pnpm --filter logpare-docs typecheck    # green (from clean .source)
