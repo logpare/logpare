@@ -91,18 +91,6 @@ describe('Output Formats', () => {
   });
 });
 
-describe('Compression Ratio Verification', () => {
-  bench('HDFS compression ratio', () => {
-    const result = compressText(hdfsLog);
-    // The benchmark framework will report timing
-    // Compression ratio should be > 0.5 for repetitive logs
-    return result.stats.compressionRatio;
-  });
-
-  bench('highly repetitive logs (identical lines)', () => {
-    const lines = Array.from({ length: 10_000 }, () => 'INFO Request processed successfully');
-    const result = compress(lines);
-    // Should achieve very high compression
-    return result.stats.compressionRatio;
-  });
-});
+// NOTE: compression-ratio verification lives in test/accuracy.test.ts, not here.
+// `bench()` only measures timing and discards the returned value, so the ratio
+// thresholds these cases used to describe in comments were never actually checked.

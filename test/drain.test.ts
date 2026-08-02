@@ -156,8 +156,23 @@ describe('Drain', () => {
     // Use different message types to ensure different templates
     drain.addLogLines(['INFO Starting server', '', '  ', 'ERROR Connection failed']);
 
-    expect(drain.totalLines).toBe(4);
+    // Blank lines are not counted as input. Counting them would inflate the
+    // compressionRatio denominator — a file with a trailing newline would report
+    // a better ratio than the same file without one.
+    expect(drain.totalLines).toBe(2);
     expect(drain.totalClusters).toBe(2);
+  });
+
+  it('should report identical inputLines with and without a trailing newline', () => {
+    const text = 'INFO Starting server\nERROR Connection failed';
+
+    const withoutTrailing = createDrain();
+    withoutTrailing.addLogLines(text.split(/\r?\n/));
+
+    const withTrailing = createDrain();
+    withTrailing.addLogLines((text + '\n').split(/\r?\n/));
+
+    expect(withTrailing.totalLines).toBe(withoutTrailing.totalLines);
   });
 
   it('should respect maxClusters limit', () => {
