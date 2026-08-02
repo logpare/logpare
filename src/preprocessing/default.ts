@@ -38,13 +38,14 @@ export function defineStrategy(
 ): ParsingStrategy {
   const { patterns, ...strategyOverrides } = overrides;
 
+  // Merge once at definition time, not once per log line.
+  const mergedPatterns = patterns
+    ? { ...DEFAULT_PATTERNS, ...patterns }
+    : DEFAULT_PATTERNS;
+
   return {
-    preprocess: strategyOverrides.preprocess ?? ((line: string) => {
-      const mergedPatterns = patterns
-        ? { ...DEFAULT_PATTERNS, ...patterns }
-        : DEFAULT_PATTERNS;
-      return applyPatterns(line, mergedPatterns, WILDCARD);
-    }),
+    preprocess: strategyOverrides.preprocess ??
+      ((line: string) => applyPatterns(line, mergedPatterns, WILDCARD)),
 
     tokenize: strategyOverrides.tokenize ?? defaultStrategy.tokenize,
 
