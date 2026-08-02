@@ -2,7 +2,12 @@
 
 **Date**: January 12, 2026
 **Author**: Claude (AI Research Assistant)
-**Status**: Feasibility Analysis Complete
+**Status**: Feasibility Analysis Complete — **historical, superseded in part**
+
+> **Note (2026-08-02):** this report predates the MCP server. `@logpare/mcp` now exists
+> at `packages/mcp` with 4 tools, 4 resources, 5 prompts, and a `--ucp` extension, so
+> the "not yet implemented" finding below is out of date. The stdio-only transport
+> caveat still holds. Market projections in this document have not been re-verified.
 
 ---
 
@@ -13,7 +18,7 @@
 Logpare's semantic log compression technology is well-aligned with the UCP ecosystem's need for efficient AI agent debugging, audit trail management, and observability tooling. The technical implementation requires moderate effort (4-8 weeks for core features), and the value proposition is strong given UCP's projected market impact ($20B+ in 2026, growing to $3-5T by 2030).
 
 **Key findings:**
-1. Logpare's core architecture (diagnostic metadata extraction, output formatters) aligns well with UCP needs; MCP server is documented but not yet implemented
+1. Logpare's core architecture (diagnostic metadata extraction, output formatters) aligns well with UCP needs; the MCP server has since been implemented at `packages/mcp`
 2. Three high-value integration opportunities identified: checkout log compression, A2A debugging, and error pattern analysis
 3. UCP's MCP transport binding (HTTP/streaming) would require building the MCP server with HTTP transport (current patterns show stdio only)
 4. Estimated 60-90% token reduction on UCP logs would significantly benefit AI agent debugging workflows

@@ -2,6 +2,13 @@
 
 This document summarizes the research on Anthropic's Claude Agent Skills specification and the concrete skills implemented for logpare.
 
+> **Historical document.** The research below was conducted in January 2026 and has not
+> been re-verified since. As of 2026-08-02 the SKILL.md format has gained frontmatter
+> fields these skills do not yet use — `allowed-tools`, `disable-model-invocation`,
+> `user-invocable`, and `context: fork` — and the format is now a cross-agent open
+> standard (Claude Code, Codex CLI, Cursor, Gemini CLI, Copilot). Verify against the
+> current specification before relying on the details below.
+
 ## Research Summary (January 2026)
 
 ### Official Specification
