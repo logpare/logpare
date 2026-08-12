@@ -14,6 +14,7 @@
     "guides/custom-preprocessing",
     "guides/mcp-integration",
     "---",
-    "cli"
+    "cli",
+    "vercel-analytics"
   ]
 }
