@@ -1,185 +1,1448 @@
-# logpare - Full Documentation for LLMs
+# logpare — full documentation
 
-> Semantic log compression library for LLM context windows using the Drain algorithm.
+> Generated from the logpare documentation site. Do not edit by hand: change the MDX
+> pages under docs/content/docs/ and run `pnpm docs:llms`.
+>
+> Short navigation version: https://logpare.com/llms.txt
 
-## Overview
+## Contents
 
-logpare compresses repetitive log data by extracting semantic templates. It achieves 60-90% token reduction while preserving diagnostic information, making it ideal for feeding logs into LLM context windows.
+- Getting Started — https://logpare.com/docs.md
+- Installation — https://logpare.com/docs/installation.md
+- Quick Start — https://logpare.com/docs/quick-start.md
+- compress() — https://logpare.com/docs/api/compress.md
+- compressText() — https://logpare.com/docs/api/compress-text.md
+- createDrain() — https://logpare.com/docs/api/create-drain.md
+- Types Reference — https://logpare.com/docs/api/types.md
+- Parameter Tuning Guide — https://logpare.com/docs/guides/parameter-tuning.md
+- Custom Preprocessing — https://logpare.com/docs/guides/custom-preprocessing.md
+- MCP Integration — https://logpare.com/docs/guides/mcp-integration.md
+- CLI Reference — https://logpare.com/docs/cli.md
 
-## Installation
+---
+
+# Getting Started
+
+What logpare does, the problem it solves, and where to go next — start here.
+
+Source: https://logpare.com/docs (Markdown: https://logpare.com/docs.md)
+
+**logpare** is a semantic log compression library for LLM context windows. It uses the Drain algorithm to extract templates from repetitive log data, achieving **60-90% token reduction** while preserving diagnostic information.
+
+## The Problem
+
+AI assistants processing logs waste tokens on repetitive patterns. A 10,000-line log dump might contain 50 unique message templates repeated thousands of times — but the LLM sees (and bills for) every repetition.
+
+## The Solution
+
+logpare identifies log templates and outputs a compressed format showing each template once with occurrence counts.
+
+### Before logpare
+
+```text
+INFO Connection from 192.168.1.1 established
+INFO Connection from 192.168.1.2 established
+INFO Connection from 10.0.0.55 established
+... (10,844 more similar lines)
+```
+
+### After logpare
+
+```text
+=== Log Compression Summary ===
+Input: 10,847 lines → 23 templates (99.8% reduction)
+
+Top templates by frequency:
+1. [4,521x] INFO Connection from <*> established
+2. [3,892x] DEBUG Request <*> processed in <*>
+3. [1,203x] WARN Retry attempt <*> for <*>
+```
+
+## Key Features
+
+- **High compression rates**: 60-90% token reduction on repetitive logs
+- **Semantic understanding**: Preserves diagnostic information
+- **Automatic extraction**: URLs, HTTP status codes, correlation IDs, durations
+- **Severity detection**: Automatic tagging as error, warning, or info
+- **Multiple output formats**: Summary, detailed, JSON, and deterministic JSON
+- **Fast & efficient**: Processes 10,000+ lines/second
+- **V8-optimized**: Uses monomorphic classes and Map-based children
+- **TypeScript-first**: Full type safety with strict checking
+
+## What it is not
+
+Compression is a **diagnostic representation**, not an archive format. Templates collapse
+repeated lines into a pattern with counts and sampled values, so the original text cannot
+be reconstructed from the output. Keep your raw logs; send the compressed view to the
+model.
+
+## How It Works
+
+logpare uses the [Drain algorithm](https://github.com/logpai/Drain3) to parse logs:
+
+1. **Preprocessing**: Mask known variables (IPs, UUIDs, timestamps)
+2. **Tokenization**: Split log line into tokens
+3. **Tree Navigation**: Navigate parse tree by token count → first token → subsequent tokens
+4. **Cluster Matching**: Find cluster with highest similarity above threshold
+5. **Template Update**: Update pattern, replacing differing tokens with `<*>`
+
+## Next Steps
+
+- [Install logpare](/docs/installation)
+- [Follow the Quick Start guide](/docs/quick-start)
+- [Explore the API Reference](/docs/api/compress)
+- [Read the CLI Reference](/docs/cli)
+
+---
+
+# Installation
+
+Install logpare globally, per-project, or run it with npx, and confirm the install works.
+
+Source: https://logpare.com/docs/installation (Markdown: https://logpare.com/docs/installation.md)
+
+logpare can be installed as a CLI tool (for command-line usage) or as a library (for programmatic usage in your projects).
+
+## As a CLI Tool
+
+Install globally to use the `logpare` command from anywhere:
+
+```bash
+npm install -g logpare
+```
+
+Verify the installation:
+
+```bash
+logpare --version
+```
+
+Now you can compress logs directly:
+
+```bash
+logpare server.log
+cat /var/log/syslog | logpare
+```
+
+## As a Library
+
+Install locally in your project for programmatic usage:
 
 ```bash
 npm install logpare
-# or
+```
+
+Or with pnpm:
+
+```bash
 pnpm add logpare
 ```
 
-## Core Functions
+Or with yarn:
 
-### compress(lines, options?)
+```bash
+yarn add logpare
+```
+
+### Using CLI with Local Install
+
+If you installed logpare locally (not globally), use `npx` to run the CLI:
+
+```bash
+npx logpare server.log
+cat /var/log/syslog | npx logpare
+```
+
+## Requirements
+
+- **Node.js**: `^22.0.0 || >=24.0.0`. Node 20 reached end of life and is no longer
+  supported; CI tests against 22, 24, and 26.
+
+Check your Node version:
+
+```bash
+node --version
+```
+
+## Verify Installation
+
+### CLI Verification
+
+```bash
+logpare --help
+```
+
+You should see the help message with all available options.
+
+### Library Verification
+
+Create a test file `test-logpare.mjs`:
+
+```javascript
+
+const logs = [
+  'INFO Connection established',
+  'INFO Connection established',
+  'ERROR Connection failed',
+];
+
+const result = compress(logs);
+console.log(result.formatted);
+```
+
+Run it:
+
+```bash
+node test-logpare.mjs
+```
+
+You should see compressed output with templates.
+
+## TypeScript Support
+
+logpare is written in TypeScript and includes full type definitions. No additional `@types` package is needed.
+
+```typescript
+
+const result: CompressionResult = compress(logs);
+```
+
+The package ships both ESM and CommonJS builds, so `require('logpare')` works too.
+
+## Next Steps
+
+- [Quick Start Guide](/docs/quick-start) - Learn basic usage
+- [API Reference](/docs/api/compress) - Explore the API
+- [CLI Reference](/docs/cli) - Command-line options
+
+---
+
+# Quick Start
+
+Compress your first log file from the CLI and from TypeScript, and read the output formats.
+
+Source: https://logpare.com/docs/quick-start (Markdown: https://logpare.com/docs/quick-start.md)
+
+This guide will get you up and running with logpare in minutes.
+
+## Basic CLI Usage
+
+Compress a log file:
+
+```bash
+logpare server.log
+```
+
+Use stdin:
+
+```bash
+cat /var/log/syslog | logpare
+tail -1000 app.log | logpare
+```
+
+Get detailed output:
+
+```bash
+logpare --format detailed error.log
+```
+
+Output as JSON:
+
+```bash
+logpare --format json --output compressed.json access.log
+```
+
+There is no `compress` subcommand. `logpare` takes options and file paths directly —
+`logpare compress app.log` would look for a file named `compress` and exit with an error.
+
+## Basic Programmatic Usage
+
+### Compressing an Array of Lines
+
+```typescript
+
+const logs = [
+  'INFO Connection from 192.168.1.1 established',
+  'INFO Connection from 192.168.1.2 established',
+  'ERROR Connection timeout after 30s',
+  'INFO Connection from 10.0.0.1 established',
+];
+
+const result = compress(logs);
+
+console.log(result.formatted);
+// === Log Compression Summary ===
+// Input: 4 lines → 2 templates (50.0% reduction)
+//
+// Top templates by frequency:
+// 1. [3x] INFO Connection from <*> established
+// 2. [1x] ERROR Connection timeout after <*>
+
+console.log(result.stats);
+// {
+//   inputLines: 4,
+//   uniqueTemplates: 2,
+//   compressionRatio: 0.5,
+//   estimatedTokenReduction: 0.225,
+//   droppedLines: 0,
+//   processingTimeMs: 1
+// }
+```
+
+`compressionRatio` and `estimatedTokenReduction` are **ratios between 0 and 1**, not
+percentages. Multiply by 100 yourself if you want to print a percentage.
+
+### Compressing Text
+
+```typescript
+
+const logFile = readFileSync('app.log', 'utf-8');
+const result = compressText(logFile);
+
+console.log(result.formatted);
+```
+
+### Getting Structured Data
+
+`result.templates` is always available, whatever the format — `format` only controls the
+`formatted` string.
+
+```typescript
+const result = compress(logs);
+
+result.templates.forEach(template => {
+  console.log(`Pattern: ${template.pattern}`);
+  console.log(`Occurrences: ${template.occurrences}`);
+  console.log(`Severity: ${template.severity}`);
+  console.log(`URLs: ${template.urlSamples.join(', ')}`);
+  console.log('---');
+});
+```
+
+## Passing Options
+
+`compress()` takes `format` and `maxTemplates` at the top level. Every Drain algorithm
+parameter is nested under `drain`:
+
+```typescript
+const result = compress(logs, {
+  format: 'detailed',
+  maxTemplates: 20,
+  drain: {
+    depth: 5,
+    simThreshold: 0.5,
+  },
+});
+```
+
+Passing `{ depth: 5 }` at the top level is a common mistake — it is silently ignored and
+does not typecheck. Drain options always go inside `drain`.
+
+## Output Formats
+
+### Summary (Default)
+
+Compact overview with top templates and rare events:
+
+```typescript
+const result = compress(logs, { format: 'summary' });
+```
+
+Output:
+```
+=== Log Compression Summary ===
+Input: 10,847 lines → 23 templates (99.8% reduction)
+
+Top templates by frequency:
+1. [4,521x] INFO Connection from <*> established
+2. [3,892x] DEBUG Request <*> processed in <*>
+
+Rare events (≤5 occurrences): 1 templates
+- [1x] FATAL Database connection lost
+```
+
+### Detailed
+
+Full information with all diagnostic metadata:
+
+```typescript
+const result = compress(logs, { format: 'detailed' });
+```
+
+Output:
+```
+=== Log Compression Details ===
+Input: 10,847 lines → 23 templates (99.8% reduction)
+Estimated token reduction: 95.0%
+
+=== Template t001 (4,521 occurrences) ===
+Pattern: INFO Connection from <*> established
+Severity: info
+First seen: line 1
+Last seen: line 10,234
+URLs:
+  - https://api.example.com/v1/users
+Status codes: 200, 201
+Durations: 45ms, 120ms
+Sample variables:
+  - 192.168.1.1
+  - 10.0.0.55
+```
+
+### JSON
+
+Machine-readable format:
+
+```typescript
+const result = compress(logs, { format: 'json' });
+```
+
+Output:
+```json
+{
+  "version": "1.1",
+  "stats": {
+    "inputLines": 10847,
+    "uniqueTemplates": 23,
+    "compressionRatio": 0.998,
+    "estimatedTokenReduction": 0.95
+  },
+  "templates": [
+    {
+      "id": "t001",
+      "pattern": "INFO Connection from <*> established",
+      "occurrences": 4521,
+      "severity": "info",
+      "isStackFrame": false,
+      "samples": [["192.168.1.1"], ["10.0.0.55"]],
+      "urlSamples": [],
+      "fullUrlSamples": [],
+      "statusCodeSamples": [],
+      "correlationIdSamples": [],
+      "durationSamples": [],
+      "firstSeen": 0,
+      "lastSeen": 10233
+    }
+  ]
+}
+```
+
+Note that in JSON output the field is `samples` (not `sampleVariables`), and
+`firstSeen`/`lastSeen` are **zero-based** line indices. The `detailed` formatter displays
+them as one-based line numbers.
+
+### JSON Stable
+
+Same data with recursively sorted keys and no whitespace, so repeated compressions of the
+same logs serialize byte-identically — useful for diffing and for LLM prompt caching:
+
+```typescript
+const result = compress(logs, { format: 'json-stable' });
+```
+
+## Advanced: Incremental Processing
+
+For streaming or very large log files, use the Drain API directly:
+
+```typescript
+
+const drain = createDrain({
+  depth: 4,
+  simThreshold: 0.4,
+});
+
+// Process logs one at a time
+drain.addLogLine('ERROR Connection failed');
+drain.addLogLine('ERROR Connection timeout');
+drain.addLogLine('INFO Request completed');
+
+// Or a batch at once
+drain.addLogLines(['INFO Request completed', 'INFO Request completed']);
+
+// Read templates at any point
+for (const template of drain.getTemplates()) {
+  console.log(`[${template.occurrences}x] ${template.pattern}`);
+}
+
+// Or get a formatted result
+console.log(drain.getResult('summary').formatted);
+```
+
+Note that `createDrain()` takes Drain options **flat** — it receives `DrainOptions`
+directly, unlike `compress()`, which nests them under `drain`.
+
+## Keep your original logs
+
+Compression is a *diagnostic representation*, not an archive format. Templates collapse
+repeated lines into a pattern plus counts and sampled values, so the original text cannot
+be reconstructed from the output. Keep the raw logs; send the compressed view to the model.
+
+## What's Next?
+
+Now that you've learned the basics:
+
+- **Tune parameters** - See [Parameter Tuning Guide](/docs/guides/parameter-tuning)
+- **Custom preprocessing** - Learn about [Custom Preprocessing](/docs/guides/custom-preprocessing)
+- **API deep dive** - Explore the full [API Reference](/docs/api/compress)
+- **CLI options** - Check out all [CLI options](/docs/cli)
+
+---
+
+# compress()
+
+Compress an array of log lines into semantic templates — the main entry point for most callers.
+
+Source: https://logpare.com/docs/api/compress (Markdown: https://logpare.com/docs/api/compress.md)
 
 Compress an array of log lines into semantic templates.
 
+## Signature
+
 ```typescript
-import { compress } from 'logpare';
-
-const result = compress([
-  'ERROR Connection to 192.168.1.100 failed after 30s',
-  'ERROR Connection to 192.168.1.101 failed after 25s',
-  'INFO Request abc123 processed in 45ms',
-  'INFO Request xyz789 processed in 52ms',
-]);
-
-console.log(result.formatted);
-// Output:
-// ERROR Connection to <*> failed after <*> (2 occurrences)
-// INFO Request <*> processed in <*> (2 occurrences)
-
-console.log(result.stats);
-// { inputLines: 4, uniqueTemplates: 2, compressionRatio: 0.5, estimatedTokenReduction: 50 }
+function compress(
+  lines: string[],
+  options?: CompressOptions
+): CompressionResult
 ```
 
-### compressText(text, options?)
+## Parameters
 
-Compress a multiline string (splits on newlines).
+### `lines`
+
+- Type: `string[]`
+- Required: Yes
+
+Array of log lines to compress. Each line should be a complete log entry. Blank and
+whitespace-only lines are skipped and are not counted in `stats.inputLines`.
+
+### `options`
+
+- Type: `CompressOptions`
+- Required: No
 
 ```typescript
-import { compressText } from 'logpare';
+interface CompressOptions {
+  format?: OutputFormat;
+  maxTemplates?: number;
+  drain?: DrainOptions;
+}
+```
+
+Only three keys are accepted at the top level. Every Drain algorithm parameter lives inside
+`drain`.
+
+#### `options.format`
+
+- Type: `'summary' | 'detailed' | 'json' | 'json-stable'`
+- Default: `'summary'`
+
+Output format for the `formatted` field in the result. `result.templates` is populated
+identically whatever the format:
+
+- `'summary'` - Compact template list with frequencies and a rare-events section
+- `'detailed'` - Full templates with sample variables and all diagnostic metadata
+- `'json'` - Machine-readable JSON with a `version` field, pretty printed
+- `'json-stable'` - Same data with recursively sorted keys and no whitespace, for stable
+  diffs and LLM prompt-cache hits
+
+#### `options.maxTemplates`
+
+- Type: `number`
+- Default: `50`
+
+Maximum number of templates to include in **both** `result.templates` and the formatted
+output. Templates are sorted by occurrence count (most frequent first) before truncation.
+`stats.uniqueTemplates` still reports the untruncated count.
+
+#### `options.drain`
+
+- Type: `DrainOptions`
+- Default: `{}`
+
+Drain algorithm configuration:
+
+```typescript
+const result = compress(logs, {
+  drain: {
+    depth: 5,
+    simThreshold: 0.5,
+  },
+});
+```
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `depth` | `number` | `4` | Parse tree depth. Higher values create more specific templates. |
+| `simThreshold` | `number` | `0.4` | Similarity required to join an existing template, `0.0`–`1.0`. Lower groups more aggressively. When omitted, the parsing strategy decides and may vary it by depth. |
+| `maxChildren` | `number` | `100` | Max children per parse tree node. At capacity, further tokens collapse into a wildcard branch. |
+| `maxClusters` | `number` | `1000` | Max total templates. Once reached, unmatched lines are **discarded** and counted in `stats.droppedLines`. |
+| `maxSamples` | `number` | `3` | Max sample variables stored per template. |
+| `preprocessing` | `ParsingStrategy` | built-in | Custom preprocessing strategy. See [Custom Preprocessing](/docs/guides/custom-preprocessing). |
+| `onProgress` | `ProgressCallback` | `undefined` | Progress callback, see below. |
+
+##### `options.drain.onProgress`
+
+```typescript
+type ProgressCallback = (event: ProgressEvent) => void;
+
+interface ProgressEvent {
+  processedLines: number;
+  totalLines?: number;
+  currentPhase: 'parsing' | 'clustering' | 'finalizing';
+  percentComplete?: number;
+}
+```
+
+At most ~100 events are emitted for a given call.
+
+## Return Value
+
+Returns a `CompressionResult` object:
+
+```typescript
+interface CompressionResult {
+  templates: Template[];
+  stats: {
+    inputLines: number;
+    uniqueTemplates: number;
+    compressionRatio: number;
+    estimatedTokenReduction: number;
+    droppedLines?: number;
+    processingTimeMs?: number;
+  };
+  formatted: string;
+}
+```
+
+### `templates`
+
+Array of extracted templates, sorted by occurrence count (descending) and truncated to
+`maxTemplates`.
+
+See [Template interface](/docs/api/types#template) for details.
+
+### `stats`
+
+- `inputLines` - Non-blank input log lines processed
+- `uniqueTemplates` - Number of unique templates discovered (before `maxTemplates` truncation)
+- `compressionRatio` - `1 - (uniqueTemplates / inputLines)`, clamped to `0.0`–`1.0`.
+  **Higher means more compression.**
+- `estimatedTokenReduction` - Estimated reduction as a **ratio between 0 and 1**, not a
+  percentage. Derived from a character-count proxy: each pattern's length times its
+  occurrence count, versus the pattern printed once.
+- `droppedLines` - Lines discarded because `maxClusters` was reached. **Non-zero means the
+  output is incomplete** and `compressionRatio` overstates the real result.
+- `processingTimeMs` - Wall-clock processing time. Populated by `compress()` and
+  `compressText()`; not populated by [`Drain.getResult()`](/docs/api/create-drain).
+
+### `formatted`
+
+String representation in the requested format.
+
+## Examples
+
+### Basic Usage
+
+```typescript
+
+const logs = [
+  'ERROR Connection to 192.168.1.100 failed',
+  'ERROR Connection to 192.168.1.101 failed',
+  'INFO Request abc123 completed',
+  'INFO Request xyz789 completed',
+];
+
+const result = compress(logs);
+
+console.log(result.formatted);
+// === Log Compression Summary ===
+// Input: 4 lines → 2 templates (50.0% reduction)
+//
+// Top templates by frequency:
+// 1. [2x] ERROR Connection to <*> failed
+// 2. [2x] INFO Request <*> completed
+```
+
+### With Options
+
+```typescript
+const result = compress(logs, {
+  format: 'detailed',
+  maxTemplates: 100,
+  drain: {
+    depth: 5,
+    simThreshold: 0.5,
+  },
+});
+```
+
+### Progress Tracking
+
+```typescript
+const result = compress(logs, {
+  drain: {
+    onProgress: (event) => {
+      console.log(`Phase: ${event.currentPhase}`);
+      console.log(`Processed: ${event.processedLines} lines`);
+      if (event.percentComplete !== undefined) {
+        console.log(`Progress: ${event.percentComplete.toFixed(1)}%`);
+      }
+    },
+  },
+});
+```
+
+### Accessing Templates
+
+```typescript
+const result = compress(logs);
+
+// Filter error templates
+const errors = result.templates.filter(t => t.severity === 'error');
+
+// Get most frequent template
+const mostFrequent = result.templates[0];
+console.log(`Most common: ${mostFrequent.pattern} (${mostFrequent.occurrences}x)`);
+
+// Extract all URLs
+const allUrls = result.templates.flatMap(t => t.urlSamples);
+```
+
+### Reading from File
+
+```typescript
+
+const logContent = readFileSync('app.log', 'utf-8');
+const lines = logContent.split(/\r?\n/);
+
+const result = compress(lines, {
+  format: 'detailed',
+  maxTemplates: 20,
+});
+
+console.log(result.formatted);
+```
+
+### Checking for Truncation
+
+```typescript
+const result = compress(logs, { drain: { maxClusters: 100 } });
+
+if ((result.stats.droppedLines ?? 0) > 0) {
+  console.warn(
+    `${result.stats.droppedLines} lines dropped — raise maxClusters for full coverage`
+  );
+}
+```
+
+## See Also
+
+- [compressText()](/docs/api/compress-text) - Compress a multiline string
+- [createDrain()](/docs/api/create-drain) - Incremental processing
+- [Types Reference](/docs/api/types) - TypeScript interfaces
+- [Parameter Tuning Guide](/docs/guides/parameter-tuning) - Optimize parameters
+
+---
+
+# compressText()
+
+Compress a multiline string of log data — a thin wrapper over compress() that splits on newlines.
+
+Source: https://logpare.com/docs/api/compress-text (Markdown: https://logpare.com/docs/api/compress-text.md)
+
+Compress a multiline string of log data. This is a convenience wrapper around `compress()` that splits the text on newlines.
+
+## Signature
+
+```typescript
+function compressText(
+  text: string,
+  options?: CompressOptions
+): CompressionResult
+```
+
+## Parameters
+
+### `text`
+
+- Type: `string`
+- Required: Yes
+
+Multiline string containing log data. Split on `/\r?\n/`, so CRLF logs work unchanged.
+
+Blank and whitespace-only lines are skipped and are not counted in `stats.inputLines`, so a
+trailing newline does not change the reported figures.
+
+### `options`
+
+- Type: `CompressOptions`
+- Required: No
+
+Same options as [`compress()`](/docs/api/compress#parameters).
+
+## Return Value
+
+Returns a `CompressionResult` object, same as [`compress()`](/docs/api/compress#return-value).
+
+## Examples
+
+### Basic Usage
+
+```typescript
 
 const logs = `
 ERROR Connection failed
-ERROR Connection failed
+ERROR Connection timeout
+INFO Request completed
 INFO Request completed
 `;
 
 const result = compressText(logs);
+
+console.log(result.formatted);
+// === Log Compression Summary ===
+// Input: 4 lines → 3 templates (25.0% reduction)
+//
+// Top templates by frequency:
+// 1. [2x] INFO Request completed
+// 2. [1x] ERROR Connection failed
+// 3. [1x] ERROR Connection timeout
 ```
 
-### createDrain(options?)
-
-Create a Drain instance for incremental/streaming processing.
+### Reading from File
 
 ```typescript
-import { createDrain } from 'logpare';
 
-const drain = createDrain({ depth: 4, simThreshold: 0.4 });
+const logFile = readFileSync('app.log', 'utf-8');
+const result = compressText(logFile, {
+  format: 'detailed',
+  maxTemplates: 20,
+});
+
+console.log(result.formatted);
+
+// Write compressed output
+writeFileSync('compressed.txt', result.formatted);
+```
+
+### Piping from Stream
+
+```typescript
+
+// Read entire file
+const content = readFileSync('/var/log/syslog', 'utf-8');
+
+// Compress
+const result = compressText(content, {
+  format: 'json',
+  drain: {
+    depth: 5,
+    simThreshold: 0.4,
+  },
+});
+
+// Output as JSON
+console.log(JSON.stringify(result, null, 2));
+```
+
+### With Progress Tracking
+
+```typescript
+const result = compressText(largeLogFile, {
+  drain: {
+    onProgress: (event) => {
+      const percent = event.percentComplete ?? 0;
+      process.stdout.write(`\rProcessing: ${percent.toFixed(1)}%`);
+    },
+  },
+});
+
+console.log('\nDone!');
+```
+
+### Processing Template Results
+
+```typescript
+const result = compressText(logs);
+
+// Group by severity
+const bySeverity = {
+  error: result.templates.filter(t => t.severity === 'error'),
+  warning: result.templates.filter(t => t.severity === 'warning'),
+  info: result.templates.filter(t => t.severity === 'info'),
+};
+
+console.log(`Errors: ${bySeverity.error.length} templates`);
+console.log(`Warnings: ${bySeverity.warning.length} templates`);
+console.log(`Info: ${bySeverity.info.length} templates`);
+```
+
+## Implementation Details
+
+`compressText()` is equivalent to:
+
+```typescript
+function compressText(text: string, options?: CompressOptions) {
+  const lines = text.split(/\r?\n/);
+  return compress(lines, options);
+}
+```
+
+Blank-line filtering happens further down, inside the Drain instance, rather than here.
+
+## When to Use
+
+Use `compressText()` when:
+
+- Reading log files directly as strings
+- Processing multiline log data from APIs or databases
+- Working with concatenated log output
+
+Use `compress()` when:
+
+- You already have an array of lines
+- You need fine-grained control over line filtering
+- Processing streaming data incrementally
+
+## See Also
+
+- [compress()](/docs/api/compress) - Compress an array of lines
+- [createDrain()](/docs/api/create-drain) - Incremental processing
+- [Types Reference](/docs/api/types) - TypeScript interfaces
+
+---
+
+# createDrain()
+
+Create a Drain instance for incremental or streaming log processing, when you need to feed lines in over time instead of all at once.
+
+Source: https://logpare.com/docs/api/create-drain (Markdown: https://logpare.com/docs/api/create-drain.md)
+
+Create a `Drain` instance for incremental or streaming log processing. Use this when log
+lines arrive over time, or when you want to inspect templates between batches.
+
+## Signature
+
+```typescript
+function createDrain(options?: DrainOptions): Drain
+```
+
+The `Drain` class itself is also exported, for `instanceof` checks and subclassing:
+
+```typescript
+
+const drain = new Drain({ depth: 5 });   // equivalent to createDrain({ depth: 5 })
+```
+
+## Parameters
+
+### `options`
+
+- Type: `DrainOptions`
+- Required: No
+
+Configuration options for the Drain algorithm. Unlike [`compress()`](/docs/api/compress),
+these are passed **flat** — `createDrain()` takes `DrainOptions` directly, not the nested
+`{ drain: { ... } }` shape.
+
+#### `options.depth`
+
+- Type: `number`
+- Default: `4`
+
+Parse tree depth. Higher values create more specific templates.
+
+#### `options.simThreshold`
+
+- Type: `number`
+- Default: `0.4` (from the parsing strategy)
+- Range: `0.0` to `1.0`
+
+Similarity threshold for template matching. When omitted, the parsing strategy stays
+authoritative and may vary the threshold by depth. When supplied, this value overrides the
+strategy for every depth.
+
+#### `options.maxChildren`
+
+- Type: `number`
+- Default: `100`
+
+Maximum children per parse tree node. Once a node is at capacity, further tokens collapse
+into a single wildcard branch.
+
+#### `options.maxClusters`
+
+- Type: `number`
+- Default: `1000`
+
+Maximum total templates allowed. Once the cap is reached, lines that do not match an
+existing template are **discarded** and counted in `stats.droppedLines`.
+
+#### `options.maxSamples`
+
+- Type: `number`
+- Default: `3`
+
+Maximum sample variables per template.
+
+#### `options.preprocessing`
+
+- Type: `ParsingStrategy`
+- Default: Built-in strategy
+
+Custom preprocessing strategy. See [Custom Preprocessing](/docs/guides/custom-preprocessing).
+
+#### `options.onProgress`
+
+- Type: `ProgressCallback`
+- Default: `undefined`
+
+Progress callback. Only `addLogLines()` emits progress events; `addLogLine()` does not.
+
+## Return Value
+
+Returns a `Drain` instance with the following public members.
+
+### `addLogLine(line: string): LogCluster | null`
+
+Process a single log line. Returns the cluster the line was assigned to, or `null` when the
+line was blank, tokenized to nothing, or dropped because `maxClusters` was reached.
+
+```typescript
+drain.addLogLine('ERROR Connection failed');
+```
+
+`LogCluster` is an internal class. It is **not** exported from `logpare`, and its shape is
+not part of the public API. Read templates through `getTemplates()` or `getResult()`
+instead of using the returned value.
+
+### `addLogLines(lines: string[]): void`
+
+Process multiple log lines at once, emitting progress events if `onProgress` was supplied.
+
+```typescript
+drain.addLogLines([
+  'ERROR Connection failed',
+  'INFO Request completed',
+]);
+```
+
+### `getTemplates(): Template[]`
+
+Get all discovered templates, in discovery order (not sorted by frequency).
+
+```typescript
+for (const template of drain.getTemplates()) {
+  console.log(`[${template.occurrences}x] ${template.pattern}`);
+}
+```
+
+See the [Template interface](/docs/api/types#template) for every available field.
+
+### `getResult(format?: OutputFormat, maxTemplates?: number): CompressionResult`
+
+Get compression results, with templates sorted by occurrence count (descending) and
+truncated to `maxTemplates`.
+
+- `format` — `'summary'` (default), `'detailed'`, `'json'`, or `'json-stable'`
+- `maxTemplates` — default `50`
+
+```typescript
+const result = drain.getResult('detailed');
+console.log(result.formatted);
+```
+
+Unlike [`compress()`](/docs/api/compress), `getResult()` does not populate
+`stats.processingTimeMs` — the Drain instance does not own the timing window.
+
+### `totalLines: number`
+
+Read-only getter. Number of non-blank lines processed so far.
+
+### `totalClusters: number`
+
+Read-only getter. Number of templates discovered so far.
+
+```typescript
+console.log(`${drain.totalClusters} templates from ${drain.totalLines} lines`);
+```
+
+## Examples
+
+### Incremental Processing
+
+```typescript
+
+const drain = createDrain({
+  depth: 4,
+  simThreshold: 0.4,
+});
 
 // Process logs one at a time
-drain.process('ERROR Connection failed');
-drain.process('ERROR Connection timeout');
+drain.addLogLine('ERROR Connection to 192.168.1.1 failed');
+drain.addLogLine('ERROR Connection to 192.168.1.2 failed');
+drain.addLogLine('INFO Request abc123 completed');
 
 // Get results
-const clusters = drain.getClusters();
+const result = drain.getResult('summary');
+console.log(result.formatted);
 ```
 
-## Options Reference
-
-### DrainOptions
+### Streaming Processing
 
 ```typescript
-interface DrainOptions {
-  depth?: number;           // Parse tree depth (default: 4)
-  simThreshold?: number;    // Similarity threshold 0-1 (default: 0.4)
-  maxChildren?: number;     // Max children per tree node (default: 100)
-  maxClusters?: number;     // Max total templates (default: 1000)
-  maxSamples?: number;      // Sample variables per template (default: 3)
-  preprocessing?: ParsingStrategy;  // Custom preprocessing
-  onProgress?: ProgressCallback;    // Progress reporting
-}
+
+const drain = createDrain({
+  depth: 5,
+  simThreshold: 0.4,
+  maxClusters: 500,
+});
+
+const rl = createInterface({
+  input: createReadStream('/var/log/syslog'),
+  crlfDelay: Infinity,
+});
+
+let lineCount = 0;
+
+rl.on('line', (line) => {
+  drain.addLogLine(line);
+  lineCount++;
+
+  if (lineCount % 1000 === 0) {
+    console.log(`Processed ${lineCount} lines...`);
+  }
+});
+
+rl.on('close', () => {
+  const result = drain.getResult('detailed');
+  console.log(result.formatted);
+});
 ```
 
-### CompressOptions
+### Batch Processing with Progress
 
 ```typescript
-interface CompressOptions extends DrainOptions {
-  format?: 'summary' | 'detailed' | 'json';
+
+const drain = createDrain({
+  onProgress: (event) => {
+    console.log(`${event.currentPhase}: ${event.processedLines} lines`);
+    if (event.percentComplete !== undefined) {
+      console.log(`Progress: ${event.percentComplete.toFixed(1)}%`);
+    }
+  }
+});
+
+// Process in batches
+const batchSize = 1000;
+for (let i = 0; i < logs.length; i += batchSize) {
+  const batch = logs.slice(i, i + batchSize);
+  drain.addLogLines(batch);
+}
+
+const result = drain.getResult();
+```
+
+### Custom Preprocessing
+
+```typescript
+
+const customStrategy = defineStrategy({
+  preprocess(line: string): string {
+    // Custom masking for domain-specific patterns
+    return line
+      .replace(/order-[A-Z0-9]{8}/g, WILDCARD)
+      .replace(/user_\d+/g, WILDCARD);
+  },
+
+  tokenize(line: string): string[] {
+    // Custom tokenization
+    return line.split(/\s+/).filter(Boolean);
+  },
+
+  getSimThreshold(depth: number): number {
+    // Depth-dependent threshold
+    return depth <= 2 ? 0.3 : 0.4;
+  }
+});
+
+const drain = createDrain({
+  preprocessing: customStrategy,
+  depth: 5,
+});
+
+drain.addLogLines(logs);
+const result = drain.getResult();
+```
+
+### Inspecting Templates Directly
+
+```typescript
+
+const drain = createDrain();
+drain.addLogLines(logs);
+
+// getTemplates() returns discovery order — sort it yourself
+const sorted = drain.getTemplates().sort((a, b) => b.occurrences - a.occurrences);
+
+sorted.slice(0, 10).forEach((template, i) => {
+  console.log(`${i + 1}. [${template.occurrences}x] ${template.pattern}`);
+  console.log(`   Severity: ${template.severity}`);
+  console.log(`   URLs: ${template.urlSamples.join(', ')}`);
+});
+```
+
+### Real-time Monitoring
+
+```typescript
+
+const drain = createDrain({
+  depth: 4,
+  simThreshold: 0.3,
+});
+
+// Monitor live logs
+const tail = spawn('tail', ['-f', '/var/log/app.log']);
+
+tail.stdout.on('data', (data) => {
+  const lines = data.toString().split('\n').filter(Boolean);
+  drain.addLogLines(lines);
+});
+
+// Report every 10 seconds
+setInterval(() => {
+  const templates = drain.getTemplates();
+  console.log(`\n=== Current State: ${templates.length} templates ===`);
+
+  const errors = templates.filter((t) => t.severity === 'error');
+
+  if (errors.length > 0) {
+    console.log('Error templates:');
+    errors.slice(0, 5).forEach((t) => {
+      console.log(`  [${t.occurrences}x] ${t.pattern}`);
+    });
+  }
+}, 10000);
+```
+
+## Watch for dropped lines
+
+The Drain instance is memory-bounded by `maxClusters`. Once the cap is hit, unmatched lines
+are thrown away rather than creating a new template, and `compressionRatio` would otherwise
+look better than reality. Always check `droppedLines`:
+
+```typescript
+const result = drain.getResult();
+
+if ((result.stats.droppedLines ?? 0) > 0) {
+  console.warn(
+    `${result.stats.droppedLines} lines dropped — raise maxClusters for full coverage`
+  );
 }
 ```
 
-## Output Formats
+The `summary` and `detailed` formatters print this warning for you.
 
-### summary (default)
+## When to Use
 
-Compact output showing templates and frequencies:
+Use `createDrain()` when:
 
-```
-=== Log Compression Summary ===
-Input: 1000 lines → 15 templates (98.5% reduction)
+- Log lines arrive over time (streaming, tailing, polling)
+- You want to inspect templates between batches
+- You are feeding a very large file through in chunks
+- You need `totalLines` / `totalClusters` while processing
 
-Templates (by frequency):
-  [450] ERROR Connection to <*> failed
-  [320] INFO Request <*> completed in <*>
-  [180] WARN Retry attempt <*> for <*>
-```
+Use [`compress()`](/docs/api/compress) or [`compressText()`](/docs/api/compress-text) when:
 
-### detailed
+- You already have the complete set of lines
+- You want a single call that also reports `processingTimeMs`
 
-Full output with sample variables and metadata:
+## See Also
 
-```
-=== Detailed Compression Results ===
+- [compress()](/docs/api/compress) - Simple compression API
+- [compressText()](/docs/api/compress-text) - Text compression
+- [Custom Preprocessing](/docs/guides/custom-preprocessing) - Define custom strategies
+- [Types Reference](/docs/api/types) - TypeScript interfaces
 
-Template #1 (450 occurrences)
-  Pattern: ERROR Connection to <*> failed
-  Severity: error
-  Variables: [["192.168.1.100"], ["192.168.1.101"], ["10.0.0.50"]]
-  URLs: api.example.com, cdn.example.com
-  First seen: line 1
-  Last seen: line 998
-```
+---
 
-### json
+# Types Reference
 
-Machine-readable JSON:
+Every exported TypeScript interface, type alias, constant, and utility function, with its real shape.
 
-```json
-{
-  "version": "1.1",
-  "templates": [...],
-  "stats": {...}
+Source: https://logpare.com/docs/api/types (Markdown: https://logpare.com/docs/api/types.md)
+
+Complete TypeScript type definitions for logpare.
+
+## Core Types
+
+### CompressionResult
+
+Result object returned by `compress()` and `compressText()`.
+
+```typescript
+interface CompressionResult {
+  templates: Template[];
+  stats: CompressionStats;
+  formatted: string;
 }
 ```
 
-## Template Interface
+**Fields:**
+
+- `templates` - Array of discovered templates, sorted by occurrence count (descending)
+- `stats` - Compression statistics
+- `formatted` - String representation in the requested format
+
+### Template
+
+Represents a discovered log template with metadata.
 
 ```typescript
 interface Template {
   id: string;
-  pattern: string;              // Template with <*> wildcards
-  occurrences: number;          // Match count
-  sampleVariables: string[][];  // Captured values
-  firstSeen: number;            // First line number
-  lastSeen: number;             // Last line number
-  severity: 'error' | 'warning' | 'info';
-  urlSamples: string[];         // Extracted hostnames
-  fullUrlSamples: string[];     // Complete URLs
-  statusCodeSamples: number[];  // HTTP status codes
-  correlationIdSamples: string[]; // Trace/request IDs
-  durationSamples: string[];    // Timing values
+  pattern: string;
+  occurrences: number;
+  sampleVariables: string[][];
+  firstSeen: number;
+  lastSeen: number;
+  severity: Severity;
+  urlSamples: string[];
+  fullUrlSamples: string[];
+  statusCodeSamples: number[];
+  correlationIdSamples: string[];
+  durationSamples: string[];
   isStackFrame: boolean;
 }
 ```
 
-## Custom Preprocessing
+**Fields:**
 
-Create custom strategies for domain-specific logs:
+- `id` - Unique template identifier
+- `pattern` - Template pattern with `<*>` wildcards for variables
+- `occurrences` - Number of log lines matching this template
+- `sampleVariables` - Sample values captured from variables (limited by `maxSamples`). Serialized as `samples` in JSON output.
+- `firstSeen` - **Zero-based** line index where the template was first seen. The `detailed` formatter displays this as a one-based line number.
+- `lastSeen` - Zero-based line index where the template was last seen
+- `severity` - Severity level: `'error'`, `'warning'`, or `'info'`
+- `urlSamples` - Extracted hostnames from URLs
+- `fullUrlSamples` - Complete URLs found in matching logs
+- `statusCodeSamples` - HTTP status codes (e.g., `[200, 404, 500]`)
+- `correlationIdSamples` - Trace/request IDs for distributed tracing
+- `durationSamples` - Timing values (e.g., `["45ms", "1.5s"]`)
+- `isStackFrame` - Whether this template represents a stack frame
+
+### CompressionStats
+
+Statistics about the compression operation.
 
 ```typescript
-import { defineStrategy, DEFAULT_PATTERNS, WILDCARD } from 'logpare';
+interface CompressionStats {
+  inputLines: number;
+  uniqueTemplates: number;
+  compressionRatio: number;
+  estimatedTokenReduction: number;
+  droppedLines?: number;
+  processingTimeMs?: number;
+}
+```
 
-const customStrategy = defineStrategy({
+**Fields:**
+
+- `inputLines` - Non-blank input log lines processed. Blank and whitespace-only lines are
+  excluded, so a trailing newline does not change this figure.
+- `uniqueTemplates` - Number of unique templates discovered, before `maxTemplates` truncation
+- `compressionRatio` - `1 - (uniqueTemplates / inputLines)`, clamped to `0.0`–`1.0`.
+  **Higher means more compression.**
+- `estimatedTokenReduction` - Estimated saving as a **ratio between 0 and 1**, not a
+  percentage. Character-count proxy: each pattern's length times its occurrences, versus
+  the pattern printed once.
+- `droppedLines` - Lines discarded because `maxClusters` was reached. **Non-zero means the
+  output is incomplete** and `compressionRatio` overstates the real result. Optional on the
+  interface for backwards compatibility; logpare itself always populates it.
+- `processingTimeMs` - Wall-clock processing time. Populated by `compress()` and
+  `compressText()`, not by `Drain.getResult()`.
+
+## Options Types
+
+### CompressOptions
+
+Options for `compress()` and `compressText()`.
+
+```typescript
+interface CompressOptions {
+  format?: OutputFormat;
+  maxTemplates?: number;
+  /** Drain algorithm options are nested, not inherited */
+  drain?: DrainOptions;
+}
+```
+
+**Fields:**
+
+- `format` - Output format: `'summary'`, `'detailed'`, `'json'`, or `'json-stable'`
+  (default: `'summary'`). `'json-stable'` emits the same data as `'json'` with recursively
+  sorted keys and no whitespace, for stable diffs and LLM KV-cache hits.
+- `maxTemplates` - Maximum templates in formatted output (default: `50`)
+- `drain` - Nested `DrainOptions`. These are **not** accepted at the top level —
+  pass them as `{ drain: { depth: 5 } }`.
+
+### DrainOptions
+
+Configuration for the Drain algorithm.
+
+```typescript
+interface DrainOptions {
+  depth?: number;
+  simThreshold?: number;
+  maxChildren?: number;
+  maxClusters?: number;
+  maxSamples?: number;
+  preprocessing?: ParsingStrategy;
+  onProgress?: ProgressCallback;
+}
+```
+
+**Fields:**
+
+- `depth` - Parse tree depth (default: `4`)
+- `simThreshold` - Similarity threshold 0-1 (default: `0.4`). When omitted, the parsing strategy stays authoritative and may vary the threshold by depth; when supplied, it overrides the strategy at every depth.
+- `maxChildren` - Max children per tree node (default: `100`)
+- `maxClusters` - Max total templates (default: `1000`). Once reached, unmatched lines are discarded and counted in `stats.droppedLines`.
+- `maxSamples` - Sample variables per template (default: `3`)
+- `preprocessing` - Custom preprocessing strategy
+- `onProgress` - Progress reporting callback
+
+## Preprocessing Types
+
+### ParsingStrategy
+
+Strategy for preprocessing and tokenizing log lines.
+
+```typescript
+interface ParsingStrategy {
+  preprocess(line: string): string;
+  tokenize(line: string): string[];
+  getSimThreshold(depth: number): number;
+}
+```
+
+**Methods:**
+
+- `preprocess(line)` - Preprocess a log line (mask variables, normalize, etc.)
+- `tokenize(line)` - Split preprocessed line into tokens
+- `getSimThreshold(depth)` - Get similarity threshold for a given tree depth
+
+**Example:**
+
+```typescript
+
+const customStrategy: ParsingStrategy = defineStrategy({
   preprocess(line: string): string {
     let result = line;
-
-    // Apply default patterns
     for (const [, pattern] of Object.entries(DEFAULT_PATTERNS)) {
       result = result.replace(pattern, WILDCARD);
     }
-
-    // Add custom patterns
-    result = result.replace(/order-[A-Z0-9]{8}/g, WILDCARD);
-    result = result.replace(/user_\d+/g, WILDCARD);
-
     return result;
   },
 
@@ -191,141 +1454,1795 @@ const customStrategy = defineStrategy({
     return depth <= 2 ? 0.3 : 0.4;
   }
 });
-
-const result = compress(logs, { preprocessing: customStrategy });
 ```
 
-## Built-in Patterns
+## Progress Types
 
-DEFAULT_PATTERNS includes regex for:
-- IP addresses (IPv4, IPv6)
-- UUIDs
-- Timestamps (ISO 8601, Unix)
-- Hex strings
-- File paths
-- URLs
-- Numbers
+### ProgressCallback
+
+Callback function for progress updates.
+
+```typescript
+type ProgressCallback = (event: ProgressEvent) => void;
+```
+
+### ProgressEvent
+
+Progress event data.
+
+```typescript
+interface ProgressEvent {
+  processedLines: number;
+  totalLines?: number;
+  currentPhase: 'parsing' | 'clustering' | 'finalizing';
+  percentComplete?: number;
+}
+```
+
+**Fields:**
+
+- `processedLines` - Number of lines processed so far
+- `totalLines` - Total lines to process (if known)
+- `currentPhase` - Current processing phase
+- `percentComplete` - Completion percentage 0-100 (only if `totalLines` known)
+
+### Processing phase
+
+`currentPhase` is an inline union on `ProgressEvent`; there is no exported
+`ProcessingPhase` alias.
+
+```typescript
+'parsing' | 'clustering' | 'finalizing'
+```
+
+## Enum Types
+
+### Severity
+
+Log severity level.
+
+```typescript
+type Severity = 'error' | 'warning' | 'info';
+```
+
+Automatically detected from log content:
+
+- `'error'` - ERROR, FATAL, Exception, Failed, TypeError, etc.
+- `'warning'` - WARN, Warning, Deprecated, [Violation]
+- `'info'` - Default for other logs
+
+### OutputFormat
+
+Output format for compression results.
+
+```typescript
+type OutputFormat = 'summary' | 'detailed' | 'json' | 'json-stable';
+```
+
+- `'summary'` - Compact template list with frequencies
+- `'detailed'` - Full templates with all metadata
+- `'json'` - Machine-readable JSON, pretty printed
+- `'json-stable'` - The same JSON with recursively sorted keys and no whitespace, for
+  maximum LLM KV-cache hits and stable diffs
+
+Both JSON formats emit `version`, a four-field `stats` object (`inputLines`,
+`uniqueTemplates`, `compressionRatio`, `estimatedTokenReduction`, each ratio rounded to
+three decimals), and `templates`. `processingTimeMs` and `droppedLines` are not included in
+JSON output — read them from `result.stats` instead.
+
+## Constants
+
+### WILDCARD
+
+The wildcard placeholder used in templates.
+
+```typescript
+const WILDCARD: '<*>';
+```
+
+**Example:**
+
+```typescript
+
+const pattern = `ERROR Connection to ${WILDCARD} failed`;
+```
+
+### DEFAULT_PATTERNS
+
+Built-in regex patterns for common log variables.
+
+```typescript
+const DEFAULT_PATTERNS: Record<string, RegExp>;
+```
+
+Insertion order matters — patterns are applied in sequence, and more specific patterns run
+first so they are not fragmented by broader ones. The keys, in application order:
+
+| Key | Matches |
+|---|---|
+| `isoTimestamp` | ISO 8601 timestamps, with optional fraction and offset |
+| `clockTime` | Bare `HH:MM:SS` clock times (syslog style) |
+| `uuid` | UUIDs |
+| `unixTimestamp` | 10–13 digit epoch values |
+| `url` | `http(s)://…` |
+| `ipv4` | IPv4 addresses |
+| `ipv6` | IPv6 addresses, full and compressed |
+| `port` | `:1234` style port suffixes |
+| `hexId` | `0x…` hex identifiers |
+| `blockId` | HDFS `blk_…` block IDs |
+| `filePath` | Multi-segment file paths |
+| `numericId` | Bare integers of 6+ digits |
+| `numbers` | Any bare number, with optional duration/size suffix (`250ms`, `1.5s`, `100KB`) |
+
+Because `numbers` masks every bare integer, short numbers such as an HTTP `404` or a
+`line:123` are **not** preserved by the default pattern set. Supply a custom strategy that
+omits `numbers` if you need them kept.
+
+**Example:**
+
+```typescript
+
+// Use in custom preprocessing
+const masked = line.replace(DEFAULT_PATTERNS.ipv4, '<*>');
+```
+
+### SEVERITY_PATTERNS
+
+Regex patterns for severity detection.
+
+```typescript
+const SEVERITY_PATTERNS: {
+  error: RegExp;
+  warning: RegExp;
+};
+```
+
+### STACK_FRAME_PATTERNS
+
+Readonly **array** of regex patterns for stack frame detection — V8/Node, Firefox (bare and
+named), Chrome DevTools anonymous, and `functionName @ file.js:123` forms.
+
+```typescript
+const STACK_FRAME_PATTERNS: readonly RegExp[];
+```
+
+```typescript
+
+const isFrame = STACK_FRAME_PATTERNS.some((p) => p.test(line));
+```
 
 ## Utility Functions
 
+### detectSeverity()
+
+Detect severity level from a log line.
+
 ```typescript
-import { detectSeverity, isStackFrame, extractUrls } from 'logpare';
+function detectSeverity(line: string): Severity;
+```
+
+**Example:**
+
+```typescript
 
 detectSeverity('ERROR Connection failed');  // 'error'
 detectSeverity('WARN Deprecated API');      // 'warning'
 detectSeverity('INFO Request completed');   // 'info'
+```
+
+### isStackFrame()
+
+Check if a line is a stack frame.
+
+```typescript
+function isStackFrame(line: string): boolean;
+```
+
+**Example:**
+
+```typescript
 
 isStackFrame('    at Function.name (file.js:123:45)');  // true
-
-extractUrls('GET https://api.example.com/users');  // ['api.example.com']
+isStackFrame('ERROR Connection failed');                 // false
 ```
 
-## CLI Usage
+### extractUrls()
+
+Extract URLs/hostnames from a log line.
+
+```typescript
+function extractUrls(line: string): string[];
+```
+
+**Example:**
+
+```typescript
+
+extractUrls('GET https://api.example.com/users');
+// ['api.example.com']
+
+extractUrls('Fetched http://cdn.example.com/image.png');
+// ['cdn.example.com']
+```
+
+### Other diagnostic extractors
+
+These back the corresponding `Template.*Samples` fields and are exported for direct use.
+
+```typescript
+function extractFullUrls(line: string): string[];       // complete URLs, not just hostnames
+function extractStatusCodes(line: string): number[];    // status 404, HTTP/1.1 500, code=200
+function extractCorrelationIds(line: string): string[]; // trace-id: xxx, request-id: xxx, UUIDs
+function extractDurations(line: string): string[];      // ms, s, sec, µs, us, ns, min, h, hr
+```
+
+Run them on the **raw** line, before masking — the default patterns replace most of what
+they look for with `<*>`.
+
+## Classes
+
+### Drain
+
+The Drain instance class, exported alongside [`createDrain()`](/docs/api/create-drain) for
+`instanceof` checks and subclassing.
+
+```typescript
+class Drain {
+  constructor(options?: DrainOptions);
+  addLogLine(line: string): LogCluster | null;
+  addLogLines(lines: string[]): void;
+  getTemplates(): Template[];
+  getResult(format?: OutputFormat, maxTemplates?: number): CompressionResult;
+  get totalLines(): number;
+  get totalClusters(): number;
+}
+```
+
+`LogCluster` is internal and is **not** exported from `logpare`. Read templates through
+`getTemplates()` or `getResult()`.
+
+## Strategy Helpers
+
+### defineStrategy()
+
+Create a custom preprocessing strategy.
+
+```typescript
+function defineStrategy(
+  overrides: Partial<ParsingStrategy> & { patterns?: Record<string, RegExp> }
+): ParsingStrategy;
+```
+
+Anything you do not override falls back to the default strategy. The extra `patterns` key
+is a shortcut: supply additional regexes and they are merged over `DEFAULT_PATTERNS` once,
+at definition time, and used to build `preprocess` for you. Supplying your own `preprocess`
+takes precedence and ignores `patterns`.
+
+**Example:**
+
+```typescript
+
+// Custom tokenization, default masking
+const csv = defineStrategy({
+  tokenize: (line) => line.split(','),
+  getSimThreshold: () => 0.5,
+});
+
+// Default masking plus your own patterns
+const withIds = defineStrategy({
+  patterns: {
+    orderId: /order-[A-Z0-9]{8}/g,
+    sessionId: /sess_[a-f0-9]{32}/gi,
+  },
+});
+```
+
+## See Also
+
+- [compress() API](/docs/api/compress)
+- [compressText() API](/docs/api/compress-text)
+- [createDrain() API](/docs/api/create-drain)
+- [Custom Preprocessing Guide](/docs/guides/custom-preprocessing)
+
+---
+
+# Parameter Tuning Guide
+
+Diagnose too many or too few templates and pick depth, simThreshold, maxChildren, and maxClusters for your log type.
+
+Source: https://logpare.com/docs/guides/parameter-tuning (Markdown: https://logpare.com/docs/guides/parameter-tuning.md)
+
+Learn how to optimize logpare's parameters for different log types and use cases.
+
+## Core Parameters
+
+logpare has four key parameters that control template generation:
+
+| Parameter | Default | Useful range | Effect |
+|-----------|---------|--------------|--------|
+| `depth` | 4 | 3-6 | Parse tree depth - higher = more specific templates |
+| `simThreshold` | 0.4 | 0.0-1.0 | Similarity threshold - higher = more templates |
+| `maxChildren` | 100 | 10-500 | Max children per node - affects tree width |
+| `maxClusters` | 1000 | 100-10000 | Max total templates - hard memory bound |
+
+All four live inside the `drain` key of `CompressOptions`:
+
+```typescript
+compress(logs, { drain: { depth: 5, simThreshold: 0.3 } });
+```
+
+`createDrain()` takes them flat instead, because it receives `DrainOptions` directly:
+
+```typescript
+createDrain({ depth: 5, simThreshold: 0.3 });
+```
+
+## Tuning Strategy
+
+### Problem: Too Many Templates
+
+**Symptoms:**
+- Hundreds or thousands of templates for a moderate log file
+- Similar-looking templates that should be grouped together
+- Low `compressionRatio` — remember it is `1 - templates/lines`, so **higher is better**;
+  0.2 on a repetitive log means grouping is failing
+
+**Solutions:**
+
+#### 1. Lower the Similarity Threshold
+
+Make template matching more lenient:
+
+```typescript
+compress(logs, {
+  drain: { simThreshold: 0.3 }, // More aggressive grouping
+});
+```
+
+**When to use:**
+- Logs with high variability in non-critical tokens
+- Similar messages with minor differences
+- Noisy application logs
+
+#### 2. Add Custom Preprocessing
+
+Mask domain-specific variables that aren't caught by default patterns:
+
+```typescript
+
+const strategy = defineStrategy({
+  preprocess(line: string): string {
+    let result = line;
+
+    // Apply default patterns
+    for (const [, pattern] of Object.entries(DEFAULT_PATTERNS)) {
+      result = result.replace(pattern, WILDCARD);
+    }
+
+    // Add custom patterns
+    result = result.replace(/order-[A-Z0-9]{8}/g, WILDCARD);
+    result = result.replace(/user_\d+/g, WILDCARD);
+    result = result.replace(/session-[a-f0-9]+/gi, WILDCARD);
+
+    return result;
+  }
+});
+
+compress(logs, { drain: { preprocessing: strategy } });
+```
+
+### Problem: Templates Too Generic
+
+**Symptoms:**
+- Very few templates (e.g., 5-10 for thousands of lines)
+- Templates grouping unrelated log types together
+- `compressionRatio` very close to 1.0 on logs you know are heterogeneous
+- Loss of important diagnostic information
+
+**Solutions:**
+
+#### 1. Raise the Similarity Threshold
+
+Make template matching more strict:
+
+```typescript
+compress(logs, {
+  drain: { simThreshold: 0.5 }, // More conservative grouping
+});
+```
+
+#### 2. Increase Tree Depth
+
+Allow the algorithm to consider more tokens:
+
+```typescript
+compress(logs, {
+  drain: { depth: 5 }, // or 6
+});
+```
+
+**When to use:**
+- Structured logs with many informative tokens
+- When you need fine-grained template separation
+- Logs with consistent formatting
+
+### Problem: High Memory Usage
+
+**Symptoms:**
+- Out of memory errors on large log files
+- Slow processing times
+- System becomes unresponsive
+
+**Solutions:**
+
+#### 1. Limit Maximum Clusters
+
+Cap the total number of templates:
+
+```typescript
+compress(logs, {
+  drain: { maxClusters: 500 },
+});
+```
+
+#### 2. Reduce Max Children
+
+Prevent tree explosion:
+
+```typescript
+compress(logs, {
+  drain: { maxChildren: 50 },
+});
+```
+
+#### 3. Process in Batches
+
+Use incremental processing for very large files:
+
+```typescript
+
+const drain = createDrain({
+  maxClusters: 500,
+  maxChildren: 50,
+});
+
+// Process in chunks
+const chunkSize = 10000;
+for (let i = 0; i < logs.length; i += chunkSize) {
+  const chunk = logs.slice(i, i + chunkSize);
+  drain.addLogLines(chunk);
+}
+
+const result = drain.getResult();
+```
+
+## Recommended Settings by Log Type
+
+### Structured Logs (JSON, CSV)
+
+These logs have consistent fields and formatting:
+
+```typescript
+compress(logs, {
+  drain: { depth: 3, simThreshold: 0.5 },
+});
+```
+
+**Why:**
+- Structured logs have predictable token positions
+- Higher threshold prevents over-grouping
+- Shallow depth is sufficient
+
+### Noisy Application Logs
+
+Logs with variable formatting and many unique values:
+
+```typescript
+compress(logs, {
+  drain: { depth: 5, simThreshold: 0.3 },
+});
+```
+
+**Why:**
+- Higher depth captures more context
+- Lower threshold groups similar messages
+- Handles inconsistent formatting
+
+### System Logs (syslog, journald)
+
+Well-formatted system logs with standard patterns:
+
+```typescript
+compress(logs, {
+  drain: { depth: 4, simThreshold: 0.4 }, // both are the defaults
+});
+```
+
+**Why:**
+- Default settings work well for standard formats
+- System logs have consistent structure
+- Good balance between grouping and specificity
+
+### High-Volume Logs (>1M lines)
+
+Optimize for memory efficiency:
+
+```typescript
+compress(logs, {
+  drain: {
+    depth: 4,
+    simThreshold: 0.4,
+    maxClusters: 500,
+    maxChildren: 50,
+  },
+});
+```
+
+### Web Server Access Logs
+
+HTTP request logs with standard formats:
+
+```typescript
+compress(logs, {
+  drain: { depth: 6, simThreshold: 0.5 },
+});
+```
+
+**Why:**
+- Access logs have many tokens (method, path, status, etc.)
+- Higher depth captures full request patterns
+- Higher threshold prevents grouping different endpoints
+
+## Advanced Tuning
+
+### Depth-Dependent Similarity Threshold
+
+Adjust threshold based on tree depth:
+
+```typescript
+const strategy = defineStrategy({
+  getSimThreshold(depth: number): number {
+    if (depth <= 2) return 0.3; // More lenient for early tokens
+    if (depth <= 4) return 0.4; // Default for middle
+    return 0.5; // Stricter for deeper levels
+  }
+});
+
+compress(logs, { drain: { preprocessing: strategy } });
+```
+
+**Use case:** When early tokens are highly variable but later tokens are consistent.
+
+## Diagnostic Tools
+
+### Check Compression Ratio
+
+Monitor how well compression is working:
+
+```typescript
+const result = compress(logs);
+
+// Both are ratios between 0 and 1, not percentages.
+console.log(`Compression ratio: ${(result.stats.compressionRatio * 100).toFixed(1)}%`);
+console.log(`Token reduction: ${(result.stats.estimatedTokenReduction * 100).toFixed(1)}%`);
+
+if (result.stats.compressionRatio < 0.5) {
+  console.log('⚠️  Low compression - consider lowering simThreshold');
+} else if (result.stats.compressionRatio > 0.995) {
+  console.log('⚠️  Very high compression - templates may be too generic');
+}
+
+// A non-zero droppedLines means the numbers above are optimistic:
+// lines past the maxClusters cap were thrown away, not compressed.
+if ((result.stats.droppedLines ?? 0) > 0) {
+  console.log(`⚠️  ${result.stats.droppedLines} lines dropped - raise maxClusters`);
+}
+```
+
+### Analyze Template Distribution
+
+Check if templates are well-distributed:
+
+```typescript
+const result = compress(logs);
+
+const occurrences = result.templates.map(t => t.occurrences);
+const avg = occurrences.reduce((a, b) => a + b, 0) / occurrences.length;
+const max = Math.max(...occurrences);
+
+console.log(`Average occurrences: ${avg}`);
+console.log(`Max occurrences: ${max}`);
+
+if (max > avg * 10) {
+  console.log('⚠️  Skewed distribution - one template dominates');
+}
+```
+
+## Summary
+
+| Problem | Solution | Parameter Change |
+|---------|----------|------------------|
+| Too many templates | Lower threshold | `drain: { simThreshold: 0.3 }` |
+| Templates too generic | Raise threshold | `drain: { simThreshold: 0.5 }` |
+| Missing grouping | Increase depth | `drain: { depth: 5 } `|
+| Memory issues | Limit clusters | `drain: { maxClusters: 500 }` |
+| `droppedLines > 0` | Cap was hit, output incomplete | Raise `drain.maxClusters` |
+| Unmasked variables | Custom preprocessing | Add patterns |
+
+Remember: The best settings depend on your specific log format and use case. Start with defaults and adjust based on results.
+
+---
+
+# Custom Preprocessing
+
+Mask domain-specific IDs, retokenize non-whitespace log formats, and vary the similarity threshold by depth.
+
+Source: https://logpare.com/docs/guides/custom-preprocessing (Markdown: https://logpare.com/docs/guides/custom-preprocessing.md)
+
+Learn how to create custom preprocessing strategies for domain-specific log formats.
+
+## Overview
+
+Preprocessing transforms raw log lines before template extraction. It's crucial for:
+
+- Masking variable data (IDs, tokens, values)
+- Normalizing inconsistent formatting
+- Handling domain-specific patterns
+- Improving compression quality
+
+## Default Preprocessing
+
+logpare includes built-in patterns for common variables:
+
+```typescript
+
+console.log(Object.keys(DEFAULT_PATTERNS));
+// [
+//   'isoTimestamp', 'clockTime', 'uuid', 'unixTimestamp', 'url',
+//   'ipv4', 'ipv6', 'port', 'hexId', 'blockId', 'filePath',
+//   'numericId', 'numbers'
+// ]
+```
+
+`DEFAULT_PATTERNS` is a `Record<string, RegExp>`, applied **in insertion order** — more
+specific patterns run first so broader ones do not fragment their matches. Each match is
+replaced with `<*>`, and adjacent wildcards are then collapsed into one, so
+`10.251.31.5:50010` becomes a single `<*>` rather than two.
+
+The last pattern, `numbers`, masks every bare number. Short numbers such as an HTTP `404`
+or `line:123` are therefore **not** preserved by the defaults. If you need them, build a
+strategy whose `preprocess` applies only the patterns you want.
+
+See the [full key table](/docs/api/types#default_patterns) for what each pattern matches.
+
+## Creating Custom Strategies
+
+Use `defineStrategy()` to create a custom preprocessing strategy:
+
+```typescript
+
+const customStrategy = defineStrategy({
+  preprocess(line: string): string {
+    // Transform the line
+    return line;
+  },
+
+  tokenize(line: string): string[] {
+    // Split line into tokens
+    return line.split(/\s+/).filter(Boolean);
+  },
+
+  getSimThreshold(depth: number): number {
+    // Return similarity threshold for this depth
+    return 0.4;
+  }
+});
+```
+
+All three methods are optional — anything you leave out falls back to the default
+strategy.
+
+There is also a shortcut for the common case of "defaults plus a few of my own patterns".
+Pass `patterns` instead of writing `preprocess` yourself, and they are merged over
+`DEFAULT_PATTERNS` once at definition time:
+
+```typescript
+
+const strategy = defineStrategy({
+  patterns: {
+    orderId: /order-[A-Z0-9]{8}/g,
+    userId: /user_\d+/g,
+    sessionId: /session-[a-f0-9]{32}/gi,
+  },
+});
+```
+
+Supplying your own `preprocess` takes precedence and ignores `patterns`.
+
+## Common Patterns
+
+### Adding Custom ID Patterns
+
+Mask application-specific identifiers:
+
+```typescript
+
+// Preferred: let defineStrategy merge your patterns over the defaults
+const strategy = defineStrategy({
+  patterns: {
+    orderId: /order-[A-Z0-9]{8}/g,
+    userId: /user_\d+/g,
+    sessionId: /session-[a-f0-9]{32}/gi,
+    requestId: /REQ-\d{10}/g,
+  },
+});
+
+// Or, if you need full control of the ordering, write preprocess yourself.
+// Note DEFAULT_PATTERNS are applied in insertion order, so iterate values in order.
+const explicit = defineStrategy({
+  preprocess(line: string): string {
+    let result = line;
+
+    for (const pattern of Object.values(DEFAULT_PATTERNS)) {
+      result = result.replace(pattern, WILDCARD);
+    }
+
+    result = result.replace(/order-[A-Z0-9]{8}/g, WILDCARD);
+    result = result.replace(/user_\d+/g, WILDCARD);
+
+    return result;
+  }
+});
+
+compress(logs, { drain: { preprocessing: strategy } });
+```
+
+### E-commerce Logs
+
+```typescript
+const ecommerceStrategy = defineStrategy({
+  preprocess(line: string): string {
+    return line
+      // Order IDs
+      .replace(/order-[A-Z0-9]{8}/g, '<*>')
+      // Product SKUs
+      .replace(/SKU-\d{6}/g, '<*>')
+      // Prices
+      .replace(/\$\d+\.\d{2}/g, '<*>')
+      // Customer IDs
+      .replace(/cust_[a-z0-9]{16}/g, '<*>')
+      // Cart IDs
+      .replace(/cart-[A-Z0-9]{12}/g, '<*>')
+      // Apply defaults
+      .replace(/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/g, '<*>');
+  }
+});
+```
+
+### Multi-tenant SaaS Logs
+
+```typescript
+const saasStrategy = defineStrategy({
+  preprocess(line: string): string {
+    return line
+      // Tenant IDs
+      .replace(/tenant-[a-z0-9]{16}/g, '<*>')
+      // Organization IDs
+      .replace(/org_[A-Z0-9]{12}/g, '<*>')
+      // Workspace IDs
+      .replace(/workspace_\d+/g, '<*>')
+      // API keys (partial)
+      .replace(/sk_live_[A-Za-z0-9]{24}/g, '<*>')
+      .replace(/pk_live_[A-Za-z0-9]{24}/g, '<*>')
+      // User emails
+      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '<*>');
+  }
+});
+```
+
+### Kubernetes/Container Logs
+
+```typescript
+const k8sStrategy = defineStrategy({
+  preprocess(line: string): string {
+    return line
+      // Pod names
+      .replace(/\b[a-z0-9-]+-[a-z0-9]{8,10}-[a-z0-9]{5}\b/g, '<*>')
+      // Container IDs
+      .replace(/[0-9a-f]{64}/g, '<*>')
+      // Deployment revision
+      .replace(/revision=\d+/g, 'revision=<*>')
+      // Resource versions
+      .replace(/resourceVersion:\s*"\d+"/g, 'resourceVersion:"<*>"')
+      // Image tags
+      .replace(/(:\s*v?\d+\.\d+\.\d+(-[\w\.]+)?)/g, ':<*>');
+  }
+});
+```
+
+## Custom Tokenization
+
+### CSV Logs
+
+Split on commas instead of whitespace:
+
+```typescript
+const csvStrategy = defineStrategy({
+  tokenize(line: string): string[] {
+    return line.split(',').map(token => token.trim());
+  }
+});
+```
+
+### Tab-Separated Logs
+
+```typescript
+const tsvStrategy = defineStrategy({
+  tokenize(line: string): string[] {
+    return line.split('\t').filter(Boolean);
+  }
+});
+```
+
+### JSON Logs
+
+Extract specific fields for tokenization:
+
+```typescript
+const jsonStrategy = defineStrategy({
+  preprocess(line: string): string {
+    try {
+      const parsed = JSON.parse(line);
+      // Create a normalized format
+      return `${parsed.level} ${parsed.message || ''} ${parsed.context || ''}`;
+    } catch {
+      // Fallback for non-JSON lines
+      return line;
+    }
+  },
+
+  tokenize(line: string): string[] {
+    return line.split(/\s+/).filter(Boolean);
+  }
+});
+```
+
+## Depth-Based Similarity Thresholds
+
+Adjust matching strictness by tree depth:
+
+```typescript
+const adaptiveStrategy = defineStrategy({
+  getSimThreshold(depth: number): number {
+    // More lenient for shallow depths (first few tokens)
+    if (depth <= 2) return 0.3;
+
+    // Default for middle depths
+    if (depth <= 4) return 0.4;
+
+    // Stricter for deeper levels
+    return 0.5;
+  }
+});
+```
+
+**Use case:** When initial tokens are highly variable but later tokens are consistent.
+
+## Testing Custom Strategies
+
+Verify your strategy works as expected:
+
+```typescript
+
+const strategy = defineStrategy({
+  preprocess(line: string): string {
+    return line.replace(/order-[A-Z0-9]{8}/g, WILDCARD);
+  }
+});
+
+// Test preprocessing
+const input = 'Processing order-ABC12345 for user 123';
+const output = strategy.preprocess(input);
+
+console.log(output);
+// "Processing <*> for user 123"
+// Note: this strategy overrides preprocess entirely, so the default patterns
+// (which would also mask "123") do not run.
+
+// Test with compress
+const result = compress([
+  'Processing order-ABC12345 for user 123',
+  'Processing order-XYZ98765 for user 456',
+], { drain: { preprocessing: strategy } });
+
+console.log(result.templates[0].pattern);
+// Expected: "Processing <*> for user <*>"
+```
+
+## Best Practices
+
+1. **Apply defaults first** - Start with `DEFAULT_PATTERNS` then add custom patterns
+2. **Test incrementally** - Add patterns one at a time and verify results
+3. **Be specific** - Use precise regex to avoid over-matching
+4. **Cache patterns** - Compile regex once, reuse many times
+5. **Document patterns** - Comment what each pattern matches
+6. **Validate input** - Handle malformed logs gracefully
+7. **Monitor performance** - Complex regex can slow processing
+
+## Debugging Tips
+
+### Inspect Preprocessing Output
+
+```typescript
+const strategy = defineStrategy({
+  preprocess(line: string): string {
+    const result = line.replace(/custom-pattern/g, '<*>');
+    console.log(`Before: ${line}`);
+    console.log(`After: ${result}`);
+    return result;
+  }
+});
+```
+
+### Check Pattern Matches
+
+```typescript
+const testPattern = /order-[A-Z0-9]{8}/g;
+const testLine = 'Processing order-ABC12345';
+
+const matches = testLine.match(testPattern);
+console.log('Matches:', matches);
+// Output: ["order-ABC12345"]
+```
+
+### Compare Results
+
+```typescript
+// Without custom preprocessing
+const result1 = compress(logs);
+console.log(`Templates: ${result1.stats.uniqueTemplates}`);
+
+// With custom preprocessing
+const result2 = compress(logs, { drain: { preprocessing: customStrategy } });
+console.log(`Templates: ${result2.stats.uniqueTemplates}`);
+console.log(`Improvement: ${result1.stats.uniqueTemplates - result2.stats.uniqueTemplates}`);
+```
+
+## See Also
+
+- [Parameter Tuning Guide](/docs/guides/parameter-tuning) - Optimize algorithm parameters
+- [Types Reference](/docs/api/types) - ParsingStrategy interface
+- [compress() API](/docs/api/compress) - Using custom strategies
+
+---
+
+# MCP Integration
+
+Current status of the logpare MCP server, how to run it from source today, and the client configs it will use once published.
+
+Source: https://logpare.com/docs/guides/mcp-integration (Markdown: https://logpare.com/docs/guides/mcp-integration.md)
+
+Learn how to integrate logpare with AI coding assistants via the Model Context Protocol (MCP).
+
+**`@logpare/mcp` is not published to npm yet.** Every `npx -y @logpare/mcp` and
+`npm install -g @logpare/mcp` command on this page will currently fail with a registry
+404. The server lives in this repository at
+[`packages/mcp`](https://github.com/logpare/logpare/tree/main/packages/mcp) — see
+[Running it from source](#running-it-from-source) below for what works today. The
+per-client configuration blocks are kept here as a reference for when the package ships.
+
+## Overview
+
+logpare provides an MCP server that exposes log compression capabilities as tools for AI assistants. This enables AI agents to:
+
+- Compress large log files before analysis
+- Extract patterns from application logs
+- Estimate compression ratios
+- Process UCP checkout and A2A logs (with `--ucp` flag)
+
+## Supported Clients
+
+| Client | Transport | Config Location |
+|--------|-----------|-----------------|
+| Claude Desktop | stdio | `claude_desktop_config.json` |
+| Claude Code (CLI) | stdio | `~/.claude.json` |
+| Cursor | stdio | `~/.cursor/mcp.json` |
+| VS Code + Copilot | stdio | `.vscode/mcp.json` |
+| Windsurf | stdio | `~/.codeium/windsurf/mcp_config.json` |
+| ChatGPT | HTTP* | Settings → Connectors |
+| Gemini | stdio | `~/.config/gcloud/mcp-config.json` |
+
+> **Note**: `@logpare/mcp` currently supports **stdio transport only**. Clients marked with * require hosting the MCP server with an HTTP adapter.
+
+---
+
+## Running it from source
+
+Until the package is published, clone the monorepo and build the server, then point your
+client at the built entry point by absolute path.
 
 ```bash
-# Basic compression
-logpare compress access.log
-
-# With format
-logpare compress --format detailed server.log
-
-# With tuning options
-logpare compress --depth 5 --sim-threshold 0.5 app.log
-
-# Pipe from stdin
-cat logs/*.log | logpare compress
-
-# Output to file
-logpare compress --output compressed.txt access.log
+git clone https://github.com/logpare/logpare.git
+cd logpare
+pnpm install
+pnpm build                              # builds the logpare library it depends on
+pnpm --filter @logpare/mcp build        # builds packages/mcp/dist
 ```
 
-## Parameter Tuning Guide
-
-### Too many templates?
-- Lower `simThreshold` (try 0.3 or 0.2)
-- Add custom preprocessing for unmasked variables
-
-### Templates too generic?
-- Raise `simThreshold` (try 0.5 or 0.6)
-- Increase `depth` (try 5 or 6)
-
-### Memory issues?
-- Lower `maxClusters` (try 500)
-- Lower `maxChildren` (try 50)
-
-### Recommended settings by log type:
-
-**Structured logs (JSON, CSV)**
-```typescript
-{ depth: 3, simThreshold: 0.5 }
-```
-
-**Noisy application logs**
-```typescript
-{ depth: 5, simThreshold: 0.3 }
-```
-
-**System logs (syslog)**
-```typescript
-{ depth: 4, simThreshold: 0.4 }  // defaults
-```
-
-## MCP Server Integration
-
-For AI coding assistants, install the MCP server:
+Verify the build:
 
 ```bash
-npm install -g @logpare/mcp
+node packages/mcp/dist/cli.js --test
 ```
 
-### Claude Desktop Configuration
+Then use an absolute path in any client config that would otherwise call `npx`:
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "logpare": {
+      "command": "node",
+      "args": ["/absolute/path/to/logpare/packages/mcp/dist/cli.js", "--ucp"]
+    }
+  }
+}
+```
+
+Every config block below works the same way — substitute this `command`/`args` pair for
+the `npx` form.
+
+---
+
+## Claude Desktop
+
+### Configuration File Locations
+
+| Platform | Path |
+|----------|------|
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Linux | `~/.config/Claude/claude_desktop_config.json` |
+
+### Basic Configuration
 
 ```json
 {
   "mcpServers": {
     "logpare": {
       "command": "npx",
-      "args": ["@logpare/mcp"]
+      "args": ["-y", "@logpare/mcp"]
     }
   }
 }
 ```
 
-### Available MCP Tools
+### With UCP Extension
 
-- `compress_logs` - Compress log array with options
-- `analyze_log_patterns` - Extract patterns without full compression
-- `estimate_compression` - Quick compression ratio estimate
-
-## Algorithm: Drain
-
-logpare uses the Drain algorithm for log parsing:
-
-1. **Preprocessing**: Mask known variables (IPs, UUIDs, timestamps)
-2. **Tokenization**: Split log line into tokens
-3. **Tree Navigation**: Navigate parse tree by token count → first token → subsequent tokens
-4. **Cluster Matching**: Find cluster with highest similarity above threshold
-5. **Template Update**: Update pattern, replacing differing tokens with `<*>`
-
-The parse tree structure:
-```
-Root
-└── Token Count (e.g., "5")
-    └── First Token (e.g., "ERROR")
-        └── Second Token (e.g., "Connection")
-            └── LogCluster (template + metadata)
+```json
+{
+  "mcpServers": {
+    "logpare": {
+      "command": "npx",
+      "args": ["-y", "@logpare/mcp", "--ucp"]
+    }
+  }
+}
 ```
 
-## Performance
+### With Custom Settings
 
-- Processes 10,000+ lines/second on typical hardware
-- Memory usage scales with `maxClusters` × `maxChildren`
-- V8-optimized with monomorphic classes and Map-based children
+Defaults are set with CLI flags, not environment variables:
 
-## Links
+```json
+{
+  "mcpServers": {
+    "logpare": {
+      "command": "npx",
+      "args": ["-y", "@logpare/mcp", "--ucp", "--format", "detailed", "--depth", "5"]
+    }
+  }
+}
+```
 
-- GitHub: https://github.com/logpare/logpare
-- npm: https://www.npmjs.com/package/logpare
-- MCP Server: https://www.npmjs.com/package/@logpare/mcp
+### Setup Steps
+
+1. Open Claude Desktop → Settings (or Claude menu → Settings)
+2. Navigate to **Developer** tab
+3. Click **Edit Config**
+4. Add the configuration above
+5. Save and restart Claude Desktop completely
+
+### Verify Installation
+
+After restart, look for the MCP server indicator (hammer icon) in the bottom-right corner of the input box.
+
+---
+
+## Claude Code (CLI)
+
+### Add via CLI
+
+```bash
+# Basic installation
+claude mcp add logpare -s user -- npx -y @logpare/mcp
+
+# With UCP extension
+claude mcp add logpare -s user -- npx -y @logpare/mcp --ucp
+```
+
+### Configuration File
+
+Edit `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "logpare": {
+      "command": "npx",
+      "args": ["-y", "@logpare/mcp", "--ucp"]
+    }
+  }
+}
+```
+
+### Verify Installation
+
+```bash
+claude mcp list
+# or use /mcp in a conversation to check status
+```
+
+---
+
+## Cursor
+
+### Configuration File Locations
+
+| Scope | Path |
+|-------|------|
+| Global | `~/.cursor/mcp.json` |
+| Project | `.cursor/mcp.json` (in project root) |
+
+### stdio Configuration
+
+```json
+{
+  "mcpServers": {
+    "logpare": {
+      "command": "npx",
+      "args": ["-y", "@logpare/mcp", "--ucp"]
+    }
+  }
+}
+```
+
+### Variable Interpolation
+
+Cursor supports these variables:
+- `${env:NAME}` — environment variables
+- `${userHome}` — home directory
+- `${workspaceFolder}` — project root
+
+---
+
+## VS Code + GitHub Copilot
+
+**Requires**: VS Code 1.102+ with GitHub Copilot
+
+### Configuration File Locations
+
+| Scope | Path |
+|-------|------|
+| Workspace | `.vscode/mcp.json` |
+| Global | User profile (via Command Palette) |
+
+### Configuration Format
+
+```json
+{
+  "servers": {
+    "logpare": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@logpare/mcp", "--ucp"]
+    }
+  }
+}
+```
+
+### Setup via Command Palette
+
+1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Run **MCP: Add Server**
+3. Select **Command (stdio)**
+4. Enter:
+   - **Command**: `npx`
+   - **Arguments**: `-y @logpare/mcp --ucp`
+   - **Name**: `logpare`
+5. Select scope (Workspace or Global)
+
+### Start the Server
+
+1. Open `.vscode/mcp.json`
+2. Click the **Start** button at the top
+3. Server tools will be discovered automatically
+
+---
+
+## Windsurf
+
+### Configuration File Location
+
+| Platform | Path |
+|----------|------|
+| macOS/Linux | `~/.codeium/windsurf/mcp_config.json` |
+| Windows | `%USERPROFILE%\.codeium\windsurf\mcp_config.json` |
+
+### Configuration
+
+```json
+{
+  "mcpServers": {
+    "logpare": {
+      "command": "npx",
+      "args": ["-y", "@logpare/mcp", "--ucp"]
+    }
+  }
+}
+```
+
+### Setup via UI
+
+1. Open Windsurf Settings
+2. Select **Manage MCPs**
+3. Click **View raw config** to edit `mcp_config.json`
+4. Add the configuration above
+5. Restart Windsurf
+
+---
+
+## ChatGPT
+
+**Requires**: ChatGPT Pro or Plus account
+
+### Setup Steps
+
+1. Enable Developer Mode: Settings → Connectors → Advanced settings
+2. Open Settings → Connectors tab
+3. Click **Create new connector**
+4. Configure:
+   - **Name**: `logpare`
+   - **MCP server URL**: Your hosted logpare MCP endpoint
+   - **Authentication**: As required
+
+> **Note**: ChatGPT requires an HTTP endpoint. For local usage, you'll need to host the MCP server with HTTP transport.
+
+---
+
+## Gemini Code Assist
+
+### Configuration File
+
+Edit `~/.config/gcloud/mcp-config.json`:
+
+```json
+{
+  "servers": {
+    "logpare": {
+      "command": "npx",
+      "args": ["-y", "@logpare/mcp", "--ucp"]
+    }
+  }
+}
+```
+
+### Setup Steps
+
+1. Add configuration to `mcp-config.json`
+2. Restart your IDE
+3. Tools will be available in Gemini Code Assist
+
+---
+
+## Available Tools
+
+### Core Tools
+
+| Tool | Description |
+|------|-------------|
+| `compress_logs` | Compress log lines with format/depth/threshold options |
+| `compress_text` | Compress multi-line text |
+| `analyze_patterns` | Quick pattern extraction |
+| `estimate_compression` | Sample-based compression estimate |
+
+### UCP Tools (--ucp flag)
+
+| Tool | Description |
+|------|-------------|
+| `compress_checkout_logs` | UCP checkout session compression |
+| `analyze_checkout_errors` | Error pattern analysis with suggestions |
+| `compress_a2a_logs` | Agent-to-Agent log compression |
+
+---
+
+## Tool Reference
+
+### compress_logs
+
+Compress an array of log lines with full options.
+
+```typescript
+{
+  lines: string[];           // Log lines to compress
+  format?: 'summary' | 'detailed' | 'json';
+  depth?: number;            // Default: 4
+  simThreshold?: number;     // Default: 0.4
+  maxTemplates?: number;     // Default: 50
+}
+```
+
+### compress_text
+
+Compress multi-line log text.
+
+```typescript
+{
+  text: string;              // Multi-line log text
+  format?: 'summary' | 'detailed' | 'json';
+  depth?: number;
+  simThreshold?: number;
+  maxTemplates?: number;
+}
+```
+
+### analyze_patterns
+
+Extract patterns without full compression (faster).
+
+```typescript
+{
+  lines: string[];
+  maxPatterns?: number;      // Default: 20
+}
+```
+
+### estimate_compression
+
+Quick compression ratio estimate from sample.
+
+```typescript
+{
+  lines: string[];
+  sampleSize?: number;       // Default: 1000
+}
+```
+
+### compress_checkout_logs (UCP)
+
+Compress UCP checkout session logs.
+
+```typescript
+{
+  lines: string[];
+  session_id?: string;       // Filter by session ID (cs_*)
+  preserve_errors?: boolean; // Default: true
+  format?: 'summary' | 'detailed' | 'json' | 'ucp_json';
+}
+```
+
+### analyze_checkout_errors (UCP)
+
+Analyze UCP checkout error patterns.
+
+```typescript
+{
+  lines: string[];
+  include_suggestions?: boolean; // Default: true
+  group_by?: 'error_code' | 'severity' | 'session' | 'time';
+}
+```
+
+### compress_a2a_logs (UCP)
+
+Compress Agent-to-Agent communication logs.
+
+```typescript
+{
+  lines: string[];
+  group_by_agent?: boolean;
+  preserve_handoffs?: boolean;
+  trace_id?: string;
+}
+```
+
+---
+
+## CLI Options
+
+```bash
+npx @logpare/mcp [options]
+
+Options:
+  --ucp, -u           Enable UCP extension
+  --format, -f        Default format (summary|detailed|json)
+  --depth, -d         Parse tree depth (2-8, default: 4)
+  --threshold, -t     Similarity threshold (0.0-1.0, default: 0.4)
+  --max-lines, -m     Max lines per request (default: 100000)
+  --test              Run self-test
+  --help, -h          Show help
+  --version, -v       Show version
+```
+
+`--depth` must be between 2 and 8 and `--threshold` between 0.0 and 1.0; the server exits
+with an error otherwise. There are no `LOGPARE_MCP_*` environment variables — these flags
+are the only way to change the defaults.
+
+---
+
+## Troubleshooting
+
+### Server Not Appearing
+
+1. Verify JSON syntax is valid
+2. Restart the client application completely
+3. While the package is unpublished, `npx @logpare/mcp` cannot resolve — use the absolute
+   path from [Running it from source](#running-it-from-source)
+4. Run `node packages/mcp/dist/cli.js --test` to verify the build
+
+### Tools Not Working
+
+1. Check client's MCP logs for errors
+2. Verify the server is connected (look for status indicators)
+3. Rebuild after pulling: `pnpm --filter @logpare/mcp build`
+
+### Performance Issues
+
+1. Reduce `maxTemplates` parameter
+2. Use `estimate_compression` for large files first
+3. Process logs in smaller batches
+4. Increase `simThreshold` for fewer templates
+
+---
+
+## Security Best Practices
+
+1. **Local processing**: MCP runs locally—logs stay on your machine
+2. **PII masking**: Ensure sensitive data is masked before compression
+3. **Review output**: Check compressed output before sharing
+4. **Trusted sources**: Only install MCP servers from trusted sources
+
+---
+
+## See Also
+
+- [MCP Specification (v2026-07-28)](https://modelcontextprotocol.io/specification/2026-07-28) — current revision
+- [MCP Specification (v2025-11-25)](https://modelcontextprotocol.io/specification/2025-11-25) — the revision `@logpare/mcp` currently targets
+- [UCP Documentation](https://ucp.dev)
+- [Parameter Tuning Guide](/docs/guides/parameter-tuning)
+- [Custom Preprocessing](/docs/guides/custom-preprocessing)
+
+---
+
+# CLI Reference
+
+Every flag the logpare CLI accepts, with real defaults, exit codes, and piping recipes.
+
+Source: https://logpare.com/docs/cli (Markdown: https://logpare.com/docs/cli.md)
+
+Complete reference for the logpare command-line interface.
+
+## Installation
+
+Install globally to use `logpare` from anywhere:
+
+```bash
+npm install -g logpare
+```
+
+Or use with `npx` for one-off usage:
+
+```bash
+npx logpare server.log
+```
+
+## Basic Usage
+
+```bash
+logpare [options] [files...]
+cat logs.txt | logpare [options]
+```
+
+There is no `compress` subcommand. `logpare compress app.log` is read as two file paths and
+fails with `Error: File not found: compress`. Pass options and paths directly.
+
+With no file arguments, logpare reads stdin. With no file arguments **and** a TTY on stdin,
+it exits `1` with a usage hint. Multiple files are concatenated before compression, so
+templates are shared across them.
+
+### Compress a Single File
+
+```bash
+logpare server.log
+```
+
+### Compress Multiple Files
+
+```bash
+logpare access.log error.log debug.log
+```
+
+### Read from stdin
+
+```bash
+cat /var/log/syslog | logpare
+
+tail -f app.log | logpare
+
+journalctl -u myapp | logpare
+```
+
+## Options
+
+### Output Format
+
+#### `--format <format>` / `-f <format>`
+
+Output format: `summary`, `detailed`, `json`, or `json-stable`
+
+**Default:** `summary`
+
+**Examples:**
+
+```bash
+# Summary format (default)
+logpare server.log
+
+# Detailed format with all metadata
+logpare --format detailed server.log
+
+# JSON format for programmatic processing
+logpare --format json server.log
+
+# Deterministic JSON (sorted keys, no whitespace) for diffing and prompt caching
+logpare --format json-stable server.log
+```
+
+An unrecognised format is rejected with an error and exit code 1.
+
+### Output Destination
+
+#### `--output <file>` / `-o <file>`
+
+Write output to a file instead of stdout
+
+**Examples:**
+
+When `--output` is used, the compressed result goes to the file and a short
+`Output written to <file>` confirmation goes to **stderr**, keeping stdout clean.
+
+```bash
+# Write to file
+logpare --output compressed.txt server.log
+
+# JSON to file
+logpare -f json -o result.json server.log
+
+# Use with pipes
+cat access.log | logpare -o summary.txt
+```
+
+### Algorithm Parameters
+
+#### `--depth <number>` / `-d <number>`
+
+Parse tree depth. Any integer `>= 1`; values between 3 and 6 are the useful range in
+practice.
+
+**Default:** `4`
+
+```bash
+# Shallow depth for simple logs
+logpare --depth 3 system.log
+
+# Deep depth for complex logs
+logpare --depth 6 application.log
+```
+
+#### `--threshold <number>` / `-t <number>`
+
+Similarity threshold (0.0-1.0)
+
+**Default:** `0.4`
+
+```bash
+# More aggressive grouping
+logpare --threshold 0.3 noisy.log
+
+# More conservative grouping
+logpare --threshold 0.5 structured.log
+```
+
+#### `--max-children <number>` / `-c <number>`
+
+Maximum children per tree node
+
+**Default:** `100`
+
+```bash
+# Limit for memory efficiency
+logpare --max-children 50 huge.log
+```
+
+#### `--max-clusters <number>` / `-m <number>`
+
+Maximum total templates
+
+**Default:** `1000`
+
+```bash
+# Cap templates for large files
+logpare --max-clusters 500 large.log
+```
+
+#### `--max-templates <number>` / `-n <number>`
+
+Maximum templates in the output, in every format.
+
+**Default:** `50`
+
+```bash
+# Show only top 20 templates
+logpare --max-templates 20 server.log
+
+# Raise the cap rather than removing it
+logpare --max-templates 1000 server.log
+```
+
+Must be a positive integer — `0` is rejected with exit code 1. There is no "show all"
+sentinel; pass a number at least as large as `--max-clusters` instead.
+
+### Help & Version
+
+#### `--help` / `-h`
+
+Show help message
+
+```bash
+logpare --help
+```
+
+#### `--version` / `-v`
+
+Show version number
+
+```bash
+logpare --version
+```
+
+## Examples
+
+### Basic Compression
+
+```bash
+# Compress a log file
+logpare server.log
+
+# Output:
+# === Log Compression Summary ===
+# Input: 10,847 lines → 23 templates (99.8% reduction)
+#
+# Top templates by frequency:
+# 1. [4,521x] INFO Connection from <*> established
+# 2. [3,892x] DEBUG Request <*> processed in <*>
+```
+
+### Detailed Analysis
+
+```bash
+logpare --format detailed error.log
+
+# Output:
+# === Log Compression Details ===
+# Input: 1,000 lines → 12 templates (98.8% reduction)
+# Estimated token reduction: 96.3%
+#
+# === Template t001 (450 occurrences) ===
+# Pattern: ERROR Connection to <*> failed
+# Severity: error
+# First seen: line 1
+# Last seen: line 998
+# URLs:
+#   - https://api.example.com/v1/users
+# Status codes: 500, 503
+# Sample variables:
+#   - 192.168.1.100
+#   - 192.168.1.101
+```
+
+### JSON Output
+
+```bash
+logpare --format json server.log > result.json
+
+# Process with jq
+logpare -f json server.log | jq '.templates[] | select(.severity == "error")'
+
+# Pretty print
+logpare -f json server.log | jq .
+```
+
+### Piping from Other Commands
+
+```bash
+# Compress recent logs
+tail -1000 /var/log/syslog | logpare
+
+# Monitor live logs
+tail -f app.log | logpare
+
+# Compress journal logs
+journalctl -u nginx | logpare -f detailed
+
+# Kubernetes pod logs
+kubectl logs my-pod | logpare
+
+# Docker container logs
+docker logs my-container | logpare
+```
+
+### Parameter Tuning
+
+```bash
+# High compression (fewer templates)
+logpare --depth 3 --threshold 0.3 noisy.log
+
+# High fidelity (more templates)
+logpare --depth 6 --threshold 0.5 structured.log
+
+# Memory-efficient
+logpare --max-clusters 500 --max-children 50 huge.log
+```
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success (also used by `--help` and `--version`) |
+| 1 | Any error: invalid option value, unknown format, file not found, empty input |
+
+There is no distinct I/O exit code — every failure path exits `1`.
+
+## Troubleshooting
+
+### "Command not found"
+
+If you get `logpare: command not found`:
+
+```bash
+# Option 1: Use npx
+npx logpare server.log
+
+# Option 2: Install globally
+npm install -g logpare
+
+# Option 3: Use npm exec
+npm exec logpare server.log
+```
+
+### Large File Memory Issues
+
+If processing fails with large files:
+
+```bash
+# Reduce memory usage
+logpare --max-clusters 500 --max-children 50 huge.log
+
+# Or process in chunks
+head -100000 huge.log | logpare
+```
+
+## See Also
+
+- [Quick Start Guide](/docs/quick-start) - Basic usage examples
+- [API Reference](/docs/api/compress) - Programmatic usage
+- [Parameter Tuning](/docs/guides/parameter-tuning) - Optimize settings
