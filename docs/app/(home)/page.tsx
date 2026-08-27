@@ -311,7 +311,7 @@ function Footer() {
             <h3 className="font-mono font-semibold mb-4">More</h3>
             <ul className="space-y-2 text-sm text-fd-muted-foreground">
               <li><a href="https://www.npmjs.com/package/logpare" className="hover:text-fd-foreground">npm Package</a></li>
-              <li><a href="https://www.npmjs.com/package/@logpare/mcp" className="hover:text-fd-foreground">MCP Server</a></li>
+              <li><a href="https://github.com/logpare/logpare/tree/main/packages/mcp" className="hover:text-fd-foreground">MCP Server (source)</a></li>
             </ul>
           </div>
         </div>

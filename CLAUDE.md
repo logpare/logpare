@@ -17,12 +17,14 @@ pnpm test test/drain.test.ts        # Run a single test file
 pnpm test -t "should discover"      # Run tests matching pattern
 pnpm typecheck                      # Type check without emitting
 pnpm bench                          # Run benchmarks
-pnpm gates                          # Run all quality checks (typecheck + test + build)
+pnpm gates                          # Run all quality checks (docs check + typecheck + test + build)
+pnpm docs:llms                      # Regenerate llms.txt / llms-full.txt from docs/content
+pnpm docs:llms:check                # Fail if the generated llms files are stale
 ```
 
 ## Quality Gates
 
-**Always run `pnpm gates` before finishing any task.** This runs typecheck, tests, and build in sequence, stopping on the first failure. The pre-commit hook runs `pnpm typecheck` automatically.
+**Always run `pnpm gates` before finishing any task.** This runs the docs drift check, typecheck, tests, and build in sequence, stopping on the first failure. The pre-commit hook runs `pnpm typecheck` automatically.
 
 Security scanning is available via `bash scripts/security-check.sh` (or `--strict` in CI).
 
@@ -59,6 +61,11 @@ docs/                     # logpare-docs — Next.js + Fumadocs site (private, V
 └── content/docs/         # MDX documentation source
 
 scripts/security-check.sh # Secret/eval/console scanner (--strict to fail)
+scripts/generate-llms.mjs # Generates llms.txt + llms-full.txt from docs/content/docs
+
+AGENTS.md                 # Concise agent guide; ships inside the npm tarball
+llms.txt                  # GENERATED navigation file (also copied to docs/public/)
+llms-full.txt             # GENERATED full reference (also copied to docs/public/)
 ```
 
 ### Agent tooling
@@ -73,6 +80,22 @@ scripts/security-check.sh # Secret/eval/console scanner (--strict to fail)
 
 **Note:** the root `pnpm typecheck`/`test`/`build` scripts cover `src/` only. Use
 `pnpm -r` or `--filter` when changing `packages/mcp` or `docs`.
+
+## Documentation Source of Truth
+
+`docs/content/docs/**/*.mdx` is the canonical prose. `llms.txt` and `llms-full.txt` — and
+their `docs/public/` copies — are **generated** from it by `scripts/generate-llms.mjs`
+plus the curated header in `docs/content/llms-intro.md`. Never hand-edit the four
+generated files; edit the MDX and run `pnpm docs:llms`. `pnpm gates` and CI fail when they
+are stale (`test/docs.test.ts` also asserts it).
+
+`test/docs.test.ts` additionally rejects docs that reference a removed API, an invented CLI
+env var, or an unqualified `@logpare/mcp` install. `test/docs-examples.test.ts` executes the
+snippets printed in `llms.txt`, `AGENTS.md`, and the quick start.
+
+Documentation pages are served as Markdown at `https://logpare.com/docs/<slug>.md`, via
+`docs/app/api/docs-md/[[...slug]]/route.ts` and the `/docs/:slug*.md` rewrite in
+`docs/next.config.mjs`.
 
 ## Public API
 
@@ -114,6 +137,12 @@ interface ProgressEvent {
   percentComplete?: number;
 }
 
+interface CompressOptions {
+  format?: OutputFormat;    // default: 'summary'
+  maxTemplates?: number;    // default: 50
+  drain?: DrainOptions;     // algorithm options are NESTED, never top level
+}
+
 interface DrainOptions {
   depth?: number;           // Parse tree depth (default: 4)
   simThreshold?: number;    // Similarity threshold 0-1 (default: 0.4)
@@ -150,11 +179,12 @@ interface Template {
 interface CompressionResult {
   templates: Template[];
   stats: {
-    inputLines: number;
+    inputLines: number;              // non-blank lines only
     uniqueTemplates: number;
-    compressionRatio: number;
-    estimatedTokenReduction: number;
-    processingTimeMs?: number;
+    compressionRatio: number;        // 1 - templates/lines, higher = more compression
+    estimatedTokenReduction: number; // ratio 0-1, not a percentage
+    droppedLines?: number;           // > 0 means maxClusters was hit; output incomplete
+    processingTimeMs?: number;       // set by compress(), not by Drain.getResult()
   };
   formatted: string;
 }

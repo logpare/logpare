@@ -92,19 +92,24 @@ export default function PlaygroundPage(): React.JSX.Element {
 // ${dataset.name}
 const logs = \`${escapeForTemplateLiteral(dataset.logs)}\`;
 
+// Drain algorithm options are nested under "drain";
+// "format" and "maxTemplates" sit at the top level.
 const options = {
-  depth: ${options.depth},
-  simThreshold: ${options.simThreshold},
   format: '${options.format}',
+  drain: {
+    depth: ${options.depth},
+    simThreshold: ${options.simThreshold},
+  },
 };
 
 const result = compressText(logs, options);
 
+// compressionRatio and estimatedTokenReduction are ratios in 0..1, not percentages.
 console.log('📊 Compression Stats:');
 console.log(\`  • Input: \${result.stats.inputLines} lines\`);
 console.log(\`  • Templates: \${result.stats.uniqueTemplates}\`);
 console.log(\`  • Compression: \${(result.stats.compressionRatio * 100).toFixed(1)}% reduction\`);
-console.log(\`  • Token savings: ~\${result.stats.estimatedTokenReduction}%\`);
+console.log(\`  • Token savings: ~\${(result.stats.estimatedTokenReduction * 100).toFixed(1)}%\`);
 console.log('');
 console.log(result.formatted);
 

@@ -1,6 +1,6 @@
 ---
 title: compress()
-description: Compress an array of log lines into semantic templates
+description: Compress an array of log lines into semantic templates — the main entry point for most callers.
 ---
 
 Compress an array of log lines into semantic templates.
@@ -21,85 +21,75 @@ function compress(
 - Type: `string[]`
 - Required: Yes
 
-Array of log lines to compress. Each line should be a complete log entry.
+Array of log lines to compress. Each line should be a complete log entry. Blank and
+whitespace-only lines are skipped and are not counted in `stats.inputLines`.
 
 ### `options`
 
 - Type: `CompressOptions`
 - Required: No
 
-Configuration options for compression.
+```typescript
+interface CompressOptions {
+  format?: OutputFormat;
+  maxTemplates?: number;
+  drain?: DrainOptions;
+}
+```
+
+Only three keys are accepted at the top level. Every Drain algorithm parameter lives inside
+`drain`.
 
 #### `options.format`
 
-- Type: `'summary' | 'detailed' | 'json'`
+- Type: `'summary' | 'detailed' | 'json' | 'json-stable'`
 - Default: `'summary'`
 
-Output format for the `formatted` field in the result:
+Output format for the `formatted` field in the result. `result.templates` is populated
+identically whatever the format:
 
-- `'summary'` - Compact template list with frequencies and rare events
+- `'summary'` - Compact template list with frequencies and a rare-events section
 - `'detailed'` - Full templates with sample variables and all diagnostic metadata
-- `'json'` - Machine-readable JSON with version field
+- `'json'` - Machine-readable JSON with a `version` field, pretty printed
+- `'json-stable'` - Same data with recursively sorted keys and no whitespace, for stable
+  diffs and LLM prompt-cache hits
 
 #### `options.maxTemplates`
 
 - Type: `number`
 - Default: `50`
 
-Maximum number of templates to include in the formatted output. Templates are sorted by occurrence count (most frequent first).
+Maximum number of templates to include in **both** `result.templates` and the formatted
+output. Templates are sorted by occurrence count (most frequent first) before truncation.
+`stats.uniqueTemplates` still reports the untruncated count.
 
-#### `options.depth`
+#### `options.drain`
 
-- Type: `number`
-- Default: `4`
+- Type: `DrainOptions`
+- Default: `{}`
 
-Parse tree depth for the Drain algorithm. Higher values create more specific templates.
+Drain algorithm configuration:
 
-#### `options.simThreshold`
+```typescript
+const result = compress(logs, {
+  drain: {
+    depth: 5,
+    simThreshold: 0.5,
+  },
+});
+```
 
-- Type: `number`
-- Default: `0.4`
-- Range: `0.0` to `1.0`
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `depth` | `number` | `4` | Parse tree depth. Higher values create more specific templates. |
+| `simThreshold` | `number` | `0.4` | Similarity required to join an existing template, `0.0`–`1.0`. Lower groups more aggressively. When omitted, the parsing strategy decides and may vary it by depth. |
+| `maxChildren` | `number` | `100` | Max children per parse tree node. At capacity, further tokens collapse into a wildcard branch. |
+| `maxClusters` | `number` | `1000` | Max total templates. Once reached, unmatched lines are **discarded** and counted in `stats.droppedLines`. |
+| `maxSamples` | `number` | `3` | Max sample variables stored per template. |
+| `preprocessing` | `ParsingStrategy` | built-in | Custom preprocessing strategy. See [Custom Preprocessing](/docs/guides/custom-preprocessing). |
+| `onProgress` | `ProgressCallback` | `undefined` | Progress callback, see below. |
 
-Similarity threshold for template matching. Lines must be at least this similar to match an existing template.
-
-- Lower values (0.2-0.3): More aggressive grouping, fewer templates
-- Higher values (0.5-0.6): More conservative grouping, more templates
-
-#### `options.maxChildren`
-
-- Type: `number`
-- Default: `100`
-
-Maximum children per parse tree node. When exceeded, tokens are replaced with wildcards.
-
-#### `options.maxClusters`
-
-- Type: `number`
-- Default: `1000`
-
-Maximum total templates allowed. Limits memory usage for very large log sets.
-
-#### `options.maxSamples`
-
-- Type: `number`
-- Default: `3`
-
-Maximum number of sample variables to store per template.
-
-#### `options.preprocessing`
-
-- Type: `ParsingStrategy`
-- Default: Built-in strategy
-
-Custom preprocessing strategy. See [Custom Preprocessing](/docs/guides/custom-preprocessing) for details.
-
-#### `options.onProgress`
-
-- Type: `ProgressCallback`
-- Default: `undefined`
-
-Callback for progress updates during processing:
+##### `options.drain.onProgress`
 
 ```typescript
 type ProgressCallback = (event: ProgressEvent) => void;
@@ -111,6 +101,8 @@ interface ProgressEvent {
   percentComplete?: number;
 }
 ```
+
+At most ~100 events are emitted for a given call.
 
 ## Return Value
 
@@ -124,6 +116,7 @@ interface CompressionResult {
     uniqueTemplates: number;
     compressionRatio: number;
     estimatedTokenReduction: number;
+    droppedLines?: number;
     processingTimeMs?: number;
   };
   formatted: string;
@@ -132,19 +125,24 @@ interface CompressionResult {
 
 ### `templates`
 
-Array of extracted templates, sorted by occurrence count (descending).
+Array of extracted templates, sorted by occurrence count (descending) and truncated to
+`maxTemplates`.
 
 See [Template interface](/docs/api/types#template) for details.
 
 ### `stats`
 
-Compression statistics:
-
-- `inputLines` - Number of input log lines
-- `uniqueTemplates` - Number of unique templates discovered
-- `compressionRatio` - Ratio of templates to input lines (0.0 to 1.0)
-- `estimatedTokenReduction` - Estimated token reduction percentage (0-100)
-- `processingTimeMs` - Processing time in milliseconds
+- `inputLines` - Non-blank input log lines processed
+- `uniqueTemplates` - Number of unique templates discovered (before `maxTemplates` truncation)
+- `compressionRatio` - `1 - (uniqueTemplates / inputLines)`, clamped to `0.0`–`1.0`.
+  **Higher means more compression.**
+- `estimatedTokenReduction` - Estimated reduction as a **ratio between 0 and 1**, not a
+  percentage. Derived from a character-count proxy: each pattern's length times its
+  occurrence count, versus the pattern printed once.
+- `droppedLines` - Lines discarded because `maxClusters` was reached. **Non-zero means the
+  output is incomplete** and `compressionRatio` overstates the real result.
+- `processingTimeMs` - Wall-clock processing time. Populated by `compress()` and
+  `compressText()`; not populated by [`Drain.getResult()`](/docs/api/create-drain).
 
 ### `formatted`
 
@@ -180,9 +178,11 @@ console.log(result.formatted);
 ```typescript
 const result = compress(logs, {
   format: 'detailed',
-  depth: 5,
-  simThreshold: 0.5,
   maxTemplates: 100,
+  drain: {
+    depth: 5,
+    simThreshold: 0.5,
+  },
 });
 ```
 
@@ -190,20 +190,22 @@ const result = compress(logs, {
 
 ```typescript
 const result = compress(logs, {
-  onProgress: (event) => {
-    console.log(`Phase: ${event.currentPhase}`);
-    console.log(`Processed: ${event.processedLines} lines`);
-    if (event.percentComplete !== undefined) {
-      console.log(`Progress: ${event.percentComplete.toFixed(1)}%`);
-    }
-  }
+  drain: {
+    onProgress: (event) => {
+      console.log(`Phase: ${event.currentPhase}`);
+      console.log(`Processed: ${event.processedLines} lines`);
+      if (event.percentComplete !== undefined) {
+        console.log(`Progress: ${event.percentComplete.toFixed(1)}%`);
+      }
+    },
+  },
 });
 ```
 
 ### Accessing Templates
 
 ```typescript
-const result = compress(logs, { format: 'json' });
+const result = compress(logs);
 
 // Filter error templates
 const errors = result.templates.filter(t => t.severity === 'error');
@@ -219,11 +221,11 @@ const allUrls = result.templates.flatMap(t => t.urlSamples);
 ### Reading from File
 
 ```typescript
-import fs from 'fs';
+import { readFileSync } from 'node:fs';
 import { compress } from 'logpare';
 
-const logContent = fs.readFileSync('app.log', 'utf-8');
-const lines = logContent.split('\n').filter(Boolean);
+const logContent = readFileSync('app.log', 'utf-8');
+const lines = logContent.split(/\r?\n/);
 
 const result = compress(lines, {
   format: 'detailed',
@@ -231,6 +233,18 @@ const result = compress(lines, {
 });
 
 console.log(result.formatted);
+```
+
+### Checking for Truncation
+
+```typescript
+const result = compress(logs, { drain: { maxClusters: 100 } });
+
+if ((result.stats.droppedLines ?? 0) > 0) {
+  console.warn(
+    `${result.stats.droppedLines} lines dropped — raise maxClusters for full coverage`
+  );
+}
 ```
 
 ## See Also

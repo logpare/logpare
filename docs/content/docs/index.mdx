@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Learn about logpare - semantic log compression for LLM context windows
+description: What logpare does, the problem it solves, and where to go next — start here.
 ---
 
 **logpare** is a semantic log compression library for LLM context windows. It uses the Drain algorithm to extract templates from repetitive log data, achieving **60-90% token reduction** while preserving diagnostic information.
@@ -36,14 +36,21 @@ Top templates by frequency:
 
 ## Key Features
 
-- **High compression rates**: 60-90% token reduction
+- **High compression rates**: 60-90% token reduction on repetitive logs
 - **Semantic understanding**: Preserves diagnostic information
 - **Automatic extraction**: URLs, HTTP status codes, correlation IDs, durations
 - **Severity detection**: Automatic tagging as error, warning, or info
-- **Multiple output formats**: Summary, detailed, and JSON
+- **Multiple output formats**: Summary, detailed, JSON, and deterministic JSON
 - **Fast & efficient**: Processes 10,000+ lines/second
 - **V8-optimized**: Uses monomorphic classes and Map-based children
 - **TypeScript-first**: Full type safety with strict checking
+
+## What it is not
+
+Compression is a **diagnostic representation**, not an archive format. Templates collapse
+repeated lines into a pattern with counts and sampled values, so the original text cannot
+be reconstructed from the output. Keep your raw logs; send the compressed view to the
+model.
 
 ## How It Works
 
@@ -60,3 +67,4 @@ logpare uses the [Drain algorithm](https://github.com/logpai/Drain3) to parse lo
 - [Install logpare](/docs/installation)
 - [Follow the Quick Start guide](/docs/quick-start)
 - [Explore the API Reference](/docs/api/compress)
+- [Read the CLI Reference](/docs/cli)

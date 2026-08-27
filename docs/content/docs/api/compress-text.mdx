@@ -1,6 +1,6 @@
 ---
 title: compressText()
-description: Compress a multiline string of log data
+description: Compress a multiline string of log data — a thin wrapper over compress() that splits on newlines.
 ---
 
 Compress a multiline string of log data. This is a convenience wrapper around `compress()` that splits the text on newlines.
@@ -21,9 +21,10 @@ function compressText(
 - Type: `string`
 - Required: Yes
 
-Multiline string containing log data. Will be split on `\n` characters.
+Multiline string containing log data. Split on `/\r?\n/`, so CRLF logs work unchanged.
 
-Empty lines are automatically filtered out.
+Blank and whitespace-only lines are skipped and are not counted in `stats.inputLines`, so a
+trailing newline does not change the reported figures.
 
 ### `options`
 
@@ -54,16 +55,21 @@ const result = compressText(logs);
 
 console.log(result.formatted);
 // === Log Compression Summary ===
-// Input: 4 lines → 3 templates (75.0% reduction)
+// Input: 4 lines → 3 templates (25.0% reduction)
+//
+// Top templates by frequency:
+// 1. [2x] INFO Request completed
+// 2. [1x] ERROR Connection failed
+// 3. [1x] ERROR Connection timeout
 ```
 
 ### Reading from File
 
 ```typescript
-import fs from 'fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { compressText } from 'logpare';
 
-const logFile = fs.readFileSync('app.log', 'utf-8');
+const logFile = readFileSync('app.log', 'utf-8');
 const result = compressText(logFile, {
   format: 'detailed',
   maxTemplates: 20,
@@ -72,14 +78,14 @@ const result = compressText(logFile, {
 console.log(result.formatted);
 
 // Write compressed output
-fs.writeFileSync('compressed.txt', result.formatted);
+writeFileSync('compressed.txt', result.formatted);
 ```
 
 ### Piping from Stream
 
 ```typescript
 import { compressText } from 'logpare';
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 
 // Read entire file
 const content = readFileSync('/var/log/syslog', 'utf-8');
@@ -87,8 +93,10 @@ const content = readFileSync('/var/log/syslog', 'utf-8');
 // Compress
 const result = compressText(content, {
   format: 'json',
-  depth: 5,
-  simThreshold: 0.4,
+  drain: {
+    depth: 5,
+    simThreshold: 0.4,
+  },
 });
 
 // Output as JSON
@@ -99,10 +107,12 @@ console.log(JSON.stringify(result, null, 2));
 
 ```typescript
 const result = compressText(largeLogFile, {
-  onProgress: (event) => {
-    const percent = event.percentComplete ?? 0;
-    process.stdout.write(`\rProcessing: ${percent.toFixed(1)}%`);
-  }
+  drain: {
+    onProgress: (event) => {
+      const percent = event.percentComplete ?? 0;
+      process.stdout.write(`\rProcessing: ${percent.toFixed(1)}%`);
+    },
+  },
 });
 
 console.log('\nDone!');
@@ -111,7 +121,7 @@ console.log('\nDone!');
 ### Processing Template Results
 
 ```typescript
-const result = compressText(logs, { format: 'json' });
+const result = compressText(logs);
 
 // Group by severity
 const bySeverity = {
@@ -131,10 +141,12 @@ console.log(`Info: ${bySeverity.info.length} templates`);
 
 ```typescript
 function compressText(text: string, options?: CompressOptions) {
-  const lines = text.split('\n').filter(line => line.trim() !== '');
+  const lines = text.split(/\r?\n/);
   return compress(lines, options);
 }
 ```
+
+Blank-line filtering happens further down, inside the Drain instance, rather than here.
 
 ## When to Use
 

@@ -30,10 +30,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     inputSchema: {
       type: 'object',
       properties: {
-        logs: { type: 'array', items: { type: 'string' } },
+        lines: { type: 'array', items: { type: 'string' } },
         format: { enum: ['summary', 'detailed', 'json'] },
       },
-      required: ['logs'],
+      required: ['lines'],
     },
   }],
 }));
@@ -57,9 +57,9 @@ function validateArgs(args: unknown, required: string[]): Record<string, unknown
 
 // Usage in handler
 case 'compress_logs': {
-  const validated = validateArgs(args, ['logs']);
-  if (!Array.isArray(validated.logs)) {
-    throw new Error('Invalid logs: expected array of strings');
+  const validated = validateArgs(args, ['lines']);
+  if (!Array.isArray(validated.lines)) {
+    throw new Error('Invalid lines: expected array of strings');
   }
   // ... process validated input
 }

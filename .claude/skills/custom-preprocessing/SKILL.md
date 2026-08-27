@@ -60,7 +60,9 @@ interface ParsingStrategy {
 **getSimThreshold(depth)**: Returns similarity threshold for given tree depth
 - Controls how strict matching is at each level
 - Depth 0 = root, depth 1 = token count, depth 2+ = actual tokens
-- Default: Returns `simThreshold` option value
+- Default: returns a constant `0.4`, ignoring depth
+- An explicit `simThreshold` in `DrainOptions` **overrides** this method entirely
+  (see `Drain.findBestMatch`); leave it unset for the strategy to stay authoritative
 
 ## Built-in Patterns Reference
 
@@ -69,18 +71,24 @@ See what patterns are already masked by default:
 ```typescript
 import { DEFAULT_PATTERNS } from 'logpare';
 
-// Available patterns:
-DEFAULT_PATTERNS.ip          // IPv4/IPv6
-DEFAULT_PATTERNS.port        // :443, :8080
-DEFAULT_PATTERNS.uuid        // UUIDs
-DEFAULT_PATTERNS.timestamp   // ISO, Unix timestamps
-DEFAULT_PATTERNS.url         // http://, https://
-DEFAULT_PATTERNS.filepath    // /path/to/file.log
-DEFAULT_PATTERNS.hexId       // 0x1a2b3c, etc.
-DEFAULT_PATTERNS.number      // Standalone numbers
-DEFAULT_PATTERNS.blockId     // HDFS block IDs
-DEFAULT_PATTERNS.unitValue   // 250ms, 1024KB
+// Applied in this order (order matters — specific before broad):
+DEFAULT_PATTERNS.isoTimestamp   // 2026-08-27T15:04:05.123Z
+DEFAULT_PATTERNS.clockTime      // 15:04:05 (syslog style)
+DEFAULT_PATTERNS.uuid           // UUIDs
+DEFAULT_PATTERNS.unixTimestamp  // 10-13 digit epoch values
+DEFAULT_PATTERNS.url            // http://, https://
+DEFAULT_PATTERNS.ipv4           // 10.0.0.1
+DEFAULT_PATTERNS.ipv6           // ::1, full and compressed forms
+DEFAULT_PATTERNS.port           // :443, :8080
+DEFAULT_PATTERNS.hexId          // 0x1a2b3c
+DEFAULT_PATTERNS.blockId        // HDFS blk_-123456
+DEFAULT_PATTERNS.filePath       // /path/to/file.log
+DEFAULT_PATTERNS.numericId      // bare integers, 6+ digits
+DEFAULT_PATTERNS.numbers        // any bare number, plus 250ms / 1024KB suffixes
 ```
+
+Note: `numbers` runs last and masks every bare integer, so short numbers such as an HTTP
+`404` are not preserved by the defaults.
 
 ## Custom Pattern Examples
 
@@ -103,7 +111,7 @@ const dbStrategy = defineStrategy({
     queryId: /qid-\d+/gi,
     transactionId: /txn_[a-z0-9]+/gi,
     tableId: /tbl_\d+/gi,
-    duration: /\d+\.?\d*\s*(ms|sec|min)/gi,  // Already in DEFAULT_PATTERNS.unitValue
+    duration: /\d+\.?\d*\s*(ms|sec|min)/gi,  // Already covered by DEFAULT_PATTERNS.numbers
   }
 });
 ```
