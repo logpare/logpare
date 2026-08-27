@@ -27,6 +27,7 @@ import { expectedOutputs } from '../scripts/generate-llms.mjs';
 
 const DOCS_CONTENT_DIR = 'docs/content/docs';
 
+/** Recursively collect every .mdx file under a directory. */
 function mdxFiles(dir: string): string[] {
   const files: string[] = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -53,6 +54,7 @@ function publicDocs(): string[] {
   ];
 }
 
+/** Lines in a file matching a predicate, formatted as `path:line: text` for failures. */
 function findLines(file: string, predicate: (line: string) => boolean): string[] {
   const lines = fs.readFileSync(file, 'utf-8').split('\n');
   const hits: string[] = [];
@@ -175,24 +177,43 @@ describe('Docs: no stale API surface', () => {
   });
 
   it('should nest Drain options under `drain` in every compress() example', () => {
-    // Arrange — a compress()/compressText() call followed by a bare Drain option key
+    // Arrange
     const flatOption = /^\s*(depth|simThreshold|maxChildren|maxClusters|maxSamples|preprocessing|onProgress)\s*:/;
-    const compressCall = /\bcompress(Text)?\([^)]*\{\s*$/;
+    const compressCall = /\bcompress(Text)?\(/;
     const violations: string[] = [];
 
     // Act
     for (const file of publicDocs()) {
       const lines = fs.readFileSync(file, 'utf-8').split('\n');
+
       for (const [i, line] of lines.entries()) {
         if (!compressCall.test(line)) continue;
 
-        // Walk the options object literal, tracking brace depth so that keys nested
-        // inside `drain: { ... }` (depth > 1) are not mistaken for top-level ones.
-        let depth = 1;
-        for (let j = i + 1; j < lines.length && depth > 0; j++) {
-          const next = lines[j] as string;
+        // The options object may open on the call line or several lines later, so
+        // scan forward for it rather than requiring `{` at the end of the call line.
+        // Bail out if the call closes first — that call passes no options at all.
+        let start = -1;
+        for (let j = i; j < lines.length && j <= i + 6; j++) {
+          const candidate = lines[j];
+          if (candidate === undefined) break;
+          const afterCall = j === i ? candidate.slice(candidate.search(compressCall)) : candidate;
+          if (afterCall.includes('{')) {
+            start = j;
+            break;
+          }
+          if (afterCall.includes(')')) break;
+        }
+        if (start === -1) continue;
 
-          if (depth === 1 && flatOption.test(next)) {
+        // Walk the options object, tracking brace depth so that keys nested inside
+        // `drain: { ... }` (depth > 1) are not mistaken for top-level ones.
+        let depth = 0;
+        let seenOpen = false;
+        for (let j = start; j < lines.length; j++) {
+          const next = lines[j];
+          if (next === undefined) break;
+
+          if (seenOpen && depth === 1 && flatOption.test(next)) {
             violations.push(
               `${file}:${j + 1}: ${next.trim()}\n` +
                 '  → Drain options belong inside `drain: { ... }` when calling compress()'
@@ -200,10 +221,14 @@ describe('Docs: no stale API surface', () => {
           }
 
           for (const char of next) {
-            if (char === '{') depth++;
-            else if (char === '}') depth--;
-            if (depth === 0) break;
+            if (char === '{') {
+              depth++;
+              seenOpen = true;
+            } else if (char === '}') {
+              depth--;
+            }
           }
+          if (seenOpen && depth <= 0) break;
         }
       }
     }
@@ -226,27 +251,41 @@ describe('Docs: unpublished packages', () => {
   const MCP_INSTALL = /(npm (install|i)( -g)?|npx( -y)?|pnpm add|yarn add)\s+(-y\s+)?@logpare\/mcp/;
 
   it('should not present @logpare/mcp as installable without a qualifier', () => {
-    // Arrange — @logpare/mcp is not published; every page showing an install command
-    // must carry an explicit unpublished notice.
+    // Arrange — @logpare/mcp is not published; every install command must sit near an
+    // explicit unpublished notice. Scoped to a window around the command rather than
+    // the whole file, so unrelated prose elsewhere cannot vouch for it.
     const QUALIFIERS = [
       'not published to npm',
       'not published',
       'from source',
-      'build it from source',
+      'will fail',
+      'registry 404',
     ];
+    const WINDOW = 40;
 
     // Act
     const violations: string[] = [];
     for (const file of publicDocs()) {
-      const content = fs.readFileSync(file, 'utf-8');
-      const installs = findLines(file, (line) => MCP_INSTALL.test(line));
-      if (installs.length === 0) continue;
+      const lines = fs.readFileSync(file, 'utf-8').split('\n');
 
-      const qualified = QUALIFIERS.some((q) => content.toLowerCase().includes(q));
-      if (!qualified) {
+      const unqualified: string[] = [];
+      for (const [i, line] of lines.entries()) {
+        if (!MCP_INSTALL.test(line)) continue;
+
+        const context = lines
+          .slice(Math.max(0, i - WINDOW), i + WINDOW)
+          .join('\n')
+          .toLowerCase();
+
+        if (!QUALIFIERS.some((q) => context.includes(q))) {
+          unqualified.push(`${file}:${i + 1}: ${line.trim()}`);
+        }
+      }
+
+      if (unqualified.length > 0) {
         violations.push(
-          `${file} shows an @logpare/mcp install command with no unpublished notice:\n` +
-            installs.map((l) => `  ${l}`).join('\n')
+          `${file} shows an @logpare/mcp install command with no nearby unpublished notice:\n` +
+            unqualified.map((l) => `  ${l}`).join('\n')
         );
       }
     }

@@ -95,7 +95,7 @@ Supplying your own `preprocess` takes precedence and ignores `patterns`.
 Mask application-specific identifiers:
 
 ```typescript
-import { defineStrategy, DEFAULT_PATTERNS, WILDCARD } from 'logpare';
+import { compress, defineStrategy, DEFAULT_PATTERNS, WILDCARD } from 'logpare';
 
 // Preferred: let defineStrategy merge your patterns over the defaults
 const strategy = defineStrategy({
@@ -263,7 +263,7 @@ const adaptiveStrategy = defineStrategy({
 Verify your strategy works as expected:
 
 ```typescript
-import { defineStrategy, WILDCARD } from 'logpare';
+import { compress, defineStrategy, WILDCARD } from 'logpare';
 
 const strategy = defineStrategy({
   preprocess(line: string): string {

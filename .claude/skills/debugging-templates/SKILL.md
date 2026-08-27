@@ -173,7 +173,7 @@ for (const [name, pattern] of Object.entries(DEFAULT_PATTERNS)) {
 **Expected output** (each pattern is applied to the *original* line here, not
 cumulatively — the real pipeline chains them in insertion order and then collapses
 adjacent wildcards):
-```
+```text
 ipv4: Request 192.168.1.1:8080 processed in 45ms → Request <*>:8080 processed in 45ms
 port: Request 192.168.1.1:8080 processed in 45ms → Request 192.168.1.1<*> processed in 45ms
 numbers: Request 192.168.1.1:8080 processed in 45ms → Request <*>.<*>:<*> processed in <*>

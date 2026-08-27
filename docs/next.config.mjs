@@ -11,8 +11,8 @@ const config = {
   // already holds the HTML page, so it is rewritten onto app/api/docs-md.
   async rewrites() {
     return [
-      { source: '/docs.md', destination: '/api/docs-md' },
-      { source: '/docs/:slug*.md', destination: '/api/docs-md/:slug*' },
+      { source: '/docs\\.md', destination: '/api/docs-md' },
+      { source: '/docs/:slug*\\.md', destination: '/api/docs-md/:slug*' },
     ];
   },
 };

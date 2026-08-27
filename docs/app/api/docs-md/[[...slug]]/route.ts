@@ -17,6 +17,7 @@ export const revalidate = false;
 
 const SITE = 'https://logpare.com';
 
+/** The HTML URL this Markdown response is the alternate of. */
 function canonicalPath(slug: string[] | undefined): string {
   return slug && slug.length > 0 ? `/docs/${slug.join('/')}` : '/docs';
 }
@@ -36,6 +37,7 @@ function stripJsx(markdown: string): string {
     .replace(/\n{3,}/g, '\n\n');
 }
 
+/** Serve one documentation page as Markdown, with canonical and llms.txt discovery links. */
 export async function GET(
   _request: Request,
   props: { params: Promise<{ slug?: string[] }> }
@@ -66,6 +68,7 @@ export async function GET(
   });
 }
 
+/** Prerender a Markdown route for every documentation page at build time. */
 export async function generateStaticParams(): Promise<{ slug?: string[] }[]> {
   return source.generateParams();
 }

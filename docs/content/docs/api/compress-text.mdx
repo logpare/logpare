@@ -81,7 +81,11 @@ console.log(result.formatted);
 writeFileSync('compressed.txt', result.formatted);
 ```
 
-### Piping from Stream
+### Whole-File Read with Tuning
+
+`compressText()` takes a complete string, so the file is read in full first. For genuine
+streaming — feeding lines in as they arrive — use
+[`createDrain()`](/docs/api/create-drain) instead.
 
 ```typescript
 import { compressText } from 'logpare';

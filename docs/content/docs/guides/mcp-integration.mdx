@@ -69,14 +69,15 @@ Then use an absolute path in any client config that would otherwise call `npx`:
   "mcpServers": {
     "logpare": {
       "command": "node",
-      "args": ["/absolute/path/to/logpare/packages/mcp/dist/cli.js", "--ucp"]
+      "args": ["/absolute/path/to/logpare/packages/mcp/dist/cli.js"]
     }
   }
 }
 ```
 
-Every config block below works the same way — substitute this `command`/`args` pair for
-the `npx` form.
+Every config block below works the same way: replace `"command": "npx"` and the
+`"-y", "@logpare/mcp"` arguments with the pair above, and keep whatever optional flags
+that block already had. A block showing `--ucp` keeps `--ucp`; a basic block stays basic.
 
 ---
 
@@ -149,12 +150,20 @@ After restart, look for the MCP server indicator (hammer icon) in the bottom-rig
 
 ### Add via CLI
 
+These `npx` forms will fail until the package is published — use the source build below.
+
 ```bash
 # Basic installation
 claude mcp add logpare -s user -- npx -y @logpare/mcp
 
 # With UCP extension
 claude mcp add logpare -s user -- npx -y @logpare/mcp --ucp
+```
+
+Working today, from a local build:
+
+```bash
+claude mcp add logpare -s user -- node /absolute/path/to/logpare/packages/mcp/dist/cli.js
 ```
 
 ### Configuration File

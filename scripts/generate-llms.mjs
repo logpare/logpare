@@ -235,6 +235,7 @@ export function expectedOutputs() {
   }));
 }
 
+/** CLI entry point: write the generated files, or with --check report drift and exit 1. */
 function main() {
   const check = process.argv.includes('--check');
   const outputs = expectedOutputs();

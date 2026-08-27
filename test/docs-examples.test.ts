@@ -106,15 +106,16 @@ describe('Docs examples: quick start', () => {
 
   it('should use the documented JSON shape', () => {
     // Arrange & Act
-    const json = JSON.parse(compress(LOGS, { format: 'json' }).formatted) as Record<
-      string,
-      unknown
-    >;
-    const stats = json.stats as Record<string, unknown>;
-    const template = (json.templates as Record<string, unknown>[])[0] as Record<
-      string,
-      unknown
-    >;
+    const json = JSON.parse(compress(LOGS, { format: 'json' }).formatted) as {
+      version: string;
+      stats: Record<string, unknown>;
+      templates: Record<string, unknown>[];
+    };
+    const stats = json.stats;
+    const template = json.templates[0];
+
+    expect(template, 'json output should contain at least one template').toBeDefined();
+    if (template === undefined) return;
 
     // Assert — documented in quick-start.mdx, README.md, types.mdx
     expect(json.version).toBe('1.1');
@@ -180,8 +181,9 @@ describe('Docs examples: option shape', () => {
     const drain = createDrain({ depth: 5, simThreshold: 0.3 });
 
     // Act
-    drain.addLogLine(LOGS[0] as string);
-    drain.addLogLine(LOGS[1] as string);
+    for (const line of LOGS) {
+      drain.addLogLine(line);
+    }
 
     // Assert — the exact members AGENTS.md tells agents to use
     expect(drain.totalLines).toBe(2);
