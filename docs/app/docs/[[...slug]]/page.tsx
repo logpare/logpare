@@ -46,8 +46,19 @@ export async function generateMetadata(props: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = page.data as any;
 
+  const path =
+    params.slug && params.slug.length > 0 ? `/docs/${params.slug.join('/')}` : '/docs';
+
   return {
     title: data.title,
     description: data.description,
+    alternates: {
+      canonical: path,
+      // Advertises the Markdown twin served at /docs/<slug>.md, so agents can find it
+      // without guessing: <link rel="alternate" type="text/markdown" href="...">
+      types: {
+        'text/markdown': `${path}.md`,
+      },
+    },
   };
 }
