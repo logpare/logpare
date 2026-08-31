@@ -91,7 +91,7 @@ logpare access.log error.log server.log
 
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
-| `--format` | `-f` | Output format: `summary`, `detailed`, `json` | `summary` |
+| `--format` | `-f` | Output format: `summary`, `detailed`, `json`, `json-stable` | `summary` |
 | `--output` | `-o` | Write output to file | stdout |
 | `--depth` | `-d` | Parse tree depth | `4` |
 | `--threshold` | `-t` | Similarity threshold (0.0-1.0) | `0.4` |
@@ -100,6 +100,9 @@ logpare access.log error.log server.log
 | `--max-templates` | `-n` | Max templates in output | `50` |
 | `--help` | `-h` | Show help | |
 | `--version` | `-v` | Show version | |
+
+There is no `compress` subcommand — `logpare compress app.log` reads `compress` as a file
+path and exits `1`. Every failure path exits `1`; `--help` and `--version` exit `0`.
 
 ## Programmatic Usage
 
@@ -133,6 +136,9 @@ const result = compressText(logFile, { format: 'json' });
 
 ### Advanced API
 
+`compress()` nests algorithm options under `drain`; `createDrain()` takes `DrainOptions`
+flat.
+
 ```typescript
 import { createDrain, defineStrategy } from 'logpare';
 
@@ -152,6 +158,12 @@ const drain = createDrain({
 
 drain.addLogLines(logs);
 const result = drain.getResult('detailed');
+
+// Or feed lines in one at a time, and read templates as you go
+drain.addLogLine('ERROR Connection to 10.0.0.1 failed');
+for (const template of drain.getTemplates()) {
+  console.log(`[${template.occurrences}x] ${template.pattern}`);
+}
 ```
 
 ## Output Formats
@@ -179,16 +191,23 @@ Rare events (≤5 occurrences):
 Full template list with all diagnostic metadata:
 
 ```
-Template #1: INFO Connection from <*> established
-  Occurrences: 4,521
-  Severity: info
-  First seen: line 1
-  Last seen: line 10,234
-  Sample values: [["192.168.1.1"], ["10.0.0.55"], ["172.16.0.1"]]
-  URLs: api.example.com, cdn.example.com
-  Status codes: 200, 201
-  Correlation IDs: req-abc123, trace-xyz789
-  Durations: 45ms, 120ms, 2.5s
+=== Log Compression Details ===
+Input: 10,847 lines → 23 templates (99.8% reduction)
+Estimated token reduction: 95.0%
+
+=== Template t001 (4,521 occurrences) ===
+Pattern: INFO Connection from <*> established
+Severity: info
+First seen: line 1
+Last seen: line 10,234
+URLs:
+  - https://api.example.com/v1/users
+Status codes: 200, 201
+Correlation IDs: req-abc123, trace-xyz789
+Durations: 45ms, 120ms, 2.5s
+Sample variables:
+  - 192.168.1.1
+  - 10.0.0.55
 ```
 
 ### JSON
@@ -202,18 +221,17 @@ Machine-readable format with version field and complete metadata:
     "inputLines": 10847,
     "uniqueTemplates": 23,
     "compressionRatio": 0.998,
-    "estimatedTokenReduction": 0.95,
-    "processingTimeMs": 234
+    "estimatedTokenReduction": 0.95
   },
   "templates": [{
-    "id": "abc123",
+    "id": "t001",
     "pattern": "INFO Connection from <*> established",
     "occurrences": 4521,
     "severity": "info",
     "isStackFrame": false,
     "firstSeen": 1,
     "lastSeen": 10234,
-    "sampleVariables": [["192.168.1.1"], ["10.0.0.55"]],
+    "samples": [["192.168.1.1"], ["10.0.0.55"]],
     "urlSamples": ["api.example.com"],
     "fullUrlSamples": ["https://api.example.com/v1/users"],
     "statusCodeSamples": [200, 201],
@@ -225,6 +243,19 @@ Machine-readable format with version field and complete metadata:
 
 ```typescript
 compress(logs, { format: 'json' });
+```
+
+`compressionRatio` and `estimatedTokenReduction` are ratios between 0 and 1, not
+percentages, and `firstSeen`/`lastSeen` are zero-based line indices. `processingTimeMs`
+and `droppedLines` are on `result.stats` but are not serialized into JSON output.
+
+### JSON Stable
+
+The same JSON with recursively sorted keys and no whitespace, so repeated compressions of
+the same logs serialize byte-identically — useful for diffing and LLM prompt caching:
+
+```typescript
+compress(logs, { format: 'json-stable' });
 ```
 
 ## Diagnostic Metadata
@@ -259,11 +290,14 @@ Stack traces are also automatically detected (V8/Node.js, Firefox, Chrome DevToo
 Compress an array of log lines.
 
 - `lines`: `string[]` - Log lines to compress
-- `options.format`: `'summary' | 'detailed' | 'json'` - Output format (default: `'summary'`)
+- `options.format`: `'summary' | 'detailed' | 'json' | 'json-stable'` - Output format (default: `'summary'`)
 - `options.maxTemplates`: `number` - Max templates in output (default: `50`)
-- `options.drain`: `DrainOptions` - Algorithm configuration
+- `options.drain`: `DrainOptions` - Algorithm configuration. Drain options are **only**
+  accepted here, never at the top level.
 
 Returns `CompressionResult` with `templates`, `stats`, and `formatted` output.
+`stats.droppedLines` is non-zero when `maxClusters` was reached, meaning the output is
+incomplete.
 
 ### `compressText(text, options?)`
 
@@ -277,8 +311,12 @@ Create a Drain instance for incremental processing.
 - `options.simThreshold`: `number` - Similarity threshold 0-1 (default: `0.4`)
 - `options.maxChildren`: `number` - Max children per node (default: `100`)
 - `options.maxClusters`: `number` - Max total templates (default: `1000`)
+- `options.maxSamples`: `number` - Max sample variables per template (default: `3`)
 - `options.preprocessing`: `ParsingStrategy` - Custom preprocessing
 - `options.onProgress`: `ProgressCallback` - Progress reporting callback
+
+The instance exposes `addLogLine()`, `addLogLines()`, `getTemplates()`, `getResult()`, and
+the `totalLines` / `totalClusters` getters.
 
 #### Progress Reporting
 
@@ -430,6 +468,20 @@ const strategy = defineStrategy({
   }
 });
 ```
+
+## What logpare is not
+
+Compression is a **diagnostic representation**, not an archive format. Templates keep a
+pattern, occurrence counts, and a few sampled values — the original lines cannot be
+reconstructed. Keep your raw logs; send the compressed view to the model.
+
+## For AI coding agents
+
+[`AGENTS.md`](./AGENTS.md) ships inside the npm package and covers the canonical imports,
+the option shape, and the behavioural boundaries above. The package also bundles
+[`llms.txt`](./llms.txt) (navigation) and [`llms-full.txt`](./llms-full.txt) (full
+reference). Every documentation page has a Markdown twin at
+`https://logpare.com/docs/<page>.md`.
 
 ## Coming from Python Drain3?
 

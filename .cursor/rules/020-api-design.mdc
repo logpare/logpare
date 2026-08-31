@@ -19,13 +19,20 @@ interface DrainOptions {
 
 ## Sensible Defaults
 
-Everything optional with good defaults:
+Everything optional with good defaults. Note the shape: `CompressOptions` carries only
+`format`, `maxTemplates`, and a nested `drain` — algorithm parameters are *not* flattened
+onto it, and their defaults live in the Drain constructor.
 ```typescript
 export function compress(
   lines: string[],
   options: CompressOptions = {}
 ): CompressionResult {
-  const { depth = 4, simThreshold = 0.4 } = options;
+  const { format = 'summary', maxTemplates = 50, drain: drainOptions } = options;
+
+  const drain = createDrain(drainOptions);
+  drain.addLogLines(lines);
+
+  return drain.getResult(format, maxTemplates);
 }
 ```
 

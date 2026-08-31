@@ -52,8 +52,10 @@ console.log(result.formatted);
 import { createDrain } from 'logpare';
 const drain = createDrain();
 for (const line of logLines) {
-  const cluster = drain.add(line);
-  console.log(`Template: ${cluster.template}`);
+  drain.addLogLine(line);
+}
+for (const template of drain.getTemplates()) {
+  console.log(`Template: ${template.pattern}`);
 }
 ```
 
@@ -159,7 +161,7 @@ Drain3 has `add_log_message()` for training and `match()` for inference-only. lo
 
 ```typescript
 // logpare always updates clusters when adding lines
-const cluster = drain.add(line); // Always learns
+drain.addLogLine(line); // Always learns
 
 // For inference-only behavior, save and reuse templates
 const knownTemplates = result.templates.map(t => t.pattern);

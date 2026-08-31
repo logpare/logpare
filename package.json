@@ -20,7 +20,11 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "AGENTS.md",
+    "README.md",
+    "llms.txt",
+    "llms-full.txt"
   ],
   "bin": {
     "logpare": "./dist/cli.js"
@@ -31,10 +35,12 @@
     "test:watch": "vitest",
     "bench": "vitest bench",
     "typecheck": "tsc --noEmit",
-    "gates": "pnpm typecheck && pnpm test && pnpm build",
+    "docs:llms": "node scripts/generate-llms.mjs",
+    "docs:llms:check": "node scripts/generate-llms.mjs --check",
+    "gates": "pnpm docs:llms:check && pnpm typecheck && pnpm test && pnpm build",
     "changelog": "npx --yes git-cliff@2.7.0 -o CHANGELOG.md",
     "prepare": "husky",
-    "prepublishOnly": "pnpm typecheck && pnpm test && pnpm build"
+    "prepublishOnly": "pnpm docs:llms:check && pnpm typecheck && pnpm test && pnpm build"
   },
   "keywords": [
     "log",

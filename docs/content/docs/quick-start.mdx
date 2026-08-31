@@ -1,6 +1,6 @@
 ---
 title: Quick Start
-description: Get up and running with logpare in minutes
+description: Compress your first log file from the CLI and from TypeScript, and read the output formats.
 ---
 
 This guide will get you up and running with logpare in minutes.
@@ -17,7 +17,7 @@ Use stdin:
 
 ```bash
 cat /var/log/syslog | logpare
-tail -f app.log | logpare
+tail -1000 app.log | logpare
 ```
 
 Get detailed output:
@@ -31,6 +31,11 @@ Output as JSON:
 ```bash
 logpare --format json --output compressed.json access.log
 ```
+
+<Callout type="info">
+There is no `compress` subcommand. `logpare` takes options and file paths directly —
+`logpare compress app.log` would look for a file named `compress` and exit with an error.
+</Callout>
 
 ## Basic Programmatic Usage
 
@@ -61,17 +66,22 @@ console.log(result.stats);
 //   inputLines: 4,
 //   uniqueTemplates: 2,
 //   compressionRatio: 0.5,
-//   estimatedTokenReduction: 60
+//   estimatedTokenReduction: 0.225,
+//   droppedLines: 0,
+//   processingTimeMs: 1
 // }
 ```
+
+`compressionRatio` and `estimatedTokenReduction` are **ratios between 0 and 1**, not
+percentages. Multiply by 100 yourself if you want to print a percentage.
 
 ### Compressing Text
 
 ```typescript
 import { compressText } from 'logpare';
-import fs from 'fs';
+import { readFileSync } from 'node:fs';
 
-const logFile = fs.readFileSync('app.log', 'utf-8');
+const logFile = readFileSync('app.log', 'utf-8');
 const result = compressText(logFile);
 
 console.log(result.formatted);
@@ -79,12 +89,12 @@ console.log(result.formatted);
 
 ### Getting Structured Data
 
-Use JSON format for programmatic processing:
+`result.templates` is always available, whatever the format — `format` only controls the
+`formatted` string.
 
 ```typescript
-const result = compress(logs, { format: 'json' });
+const result = compress(logs);
 
-// Access templates
 result.templates.forEach(template => {
   console.log(`Pattern: ${template.pattern}`);
   console.log(`Occurrences: ${template.occurrences}`);
@@ -93,6 +103,27 @@ result.templates.forEach(template => {
   console.log('---');
 });
 ```
+
+## Passing Options
+
+`compress()` takes `format` and `maxTemplates` at the top level. Every Drain algorithm
+parameter is nested under `drain`:
+
+```typescript
+const result = compress(logs, {
+  format: 'detailed',
+  maxTemplates: 20,
+  drain: {
+    depth: 5,
+    simThreshold: 0.5,
+  },
+});
+```
+
+<Callout type="warn">
+Passing `{ depth: 5 }` at the top level is a common mistake — it is silently ignored and
+does not typecheck. Drain options always go inside `drain`.
+</Callout>
 
 ## Output Formats
 
@@ -113,7 +144,7 @@ Top templates by frequency:
 1. [4,521x] INFO Connection from <*> established
 2. [3,892x] DEBUG Request <*> processed in <*>
 
-Rare events (≤5 occurrences):
+Rare events (≤5 occurrences): 1 templates
 - [1x] FATAL Database connection lost
 ```
 
@@ -127,13 +158,22 @@ const result = compress(logs, { format: 'detailed' });
 
 Output:
 ```
-Template #1: INFO Connection from <*> established
-  Occurrences: 4,521
-  Severity: info
-  First seen: line 1
-  Last seen: line 10,234
-  Sample values: [["192.168.1.1"], ["10.0.0.55"], ["172.16.0.1"]]
-  URLs: api.example.com, cdn.example.com
+=== Log Compression Details ===
+Input: 10,847 lines → 23 templates (99.8% reduction)
+Estimated token reduction: 95.0%
+
+=== Template t001 (4,521 occurrences) ===
+Pattern: INFO Connection from <*> established
+Severity: info
+First seen: line 1
+Last seen: line 10,234
+URLs:
+  - https://api.example.com/v1/users
+Status codes: 200, 201
+Durations: 45ms, 120ms
+Sample variables:
+  - 192.168.1.1
+  - 10.0.0.55
 ```
 
 ### JSON
@@ -156,14 +196,35 @@ Output:
   },
   "templates": [
     {
-      "id": "abc123",
+      "id": "t001",
       "pattern": "INFO Connection from <*> established",
       "occurrences": 4521,
       "severity": "info",
-      "sampleVariables": [["192.168.1.1"], ["10.0.0.55"]]
+      "isStackFrame": false,
+      "samples": [["192.168.1.1"], ["10.0.0.55"]],
+      "urlSamples": [],
+      "fullUrlSamples": [],
+      "statusCodeSamples": [],
+      "correlationIdSamples": [],
+      "durationSamples": [],
+      "firstSeen": 0,
+      "lastSeen": 10233
     }
   ]
 }
+```
+
+Note that in JSON output the field is `samples` (not `sampleVariables`), and
+`firstSeen`/`lastSeen` are **zero-based** line indices. The `detailed` formatter displays
+them as one-based line numbers.
+
+### JSON Stable
+
+Same data with recursively sorted keys and no whitespace, so repeated compressions of the
+same logs serialize byte-identically — useful for diffing and for LLM prompt caching:
+
+```typescript
+const result = compress(logs, { format: 'json-stable' });
 ```
 
 ## Advanced: Incremental Processing
@@ -179,17 +240,30 @@ const drain = createDrain({
 });
 
 // Process logs one at a time
-drain.process('ERROR Connection failed');
-drain.process('ERROR Connection timeout');
-drain.process('INFO Request completed');
+drain.addLogLine('ERROR Connection failed');
+drain.addLogLine('ERROR Connection timeout');
+drain.addLogLine('INFO Request completed');
 
-// Get clusters (templates)
-const clusters = drain.getClusters();
-clusters.forEach(cluster => {
-  console.log(`Pattern: ${cluster.getPattern()}`);
-  console.log(`Count: ${cluster.size()}`);
-});
+// Or a batch at once
+drain.addLogLines(['INFO Request completed', 'INFO Request completed']);
+
+// Read templates at any point
+for (const template of drain.getTemplates()) {
+  console.log(`[${template.occurrences}x] ${template.pattern}`);
+}
+
+// Or get a formatted result
+console.log(drain.getResult('summary').formatted);
 ```
+
+Note that `createDrain()` takes Drain options **flat** — it receives `DrainOptions`
+directly, unlike `compress()`, which nests them under `drain`.
+
+## Keep your original logs
+
+Compression is a *diagnostic representation*, not an archive format. Templates collapse
+repeated lines into a pattern plus counts and sampled values, so the original text cannot
+be reconstructed from the output. Keep the raw logs; send the compressed view to the model.
 
 ## What's Next?
 

@@ -1,6 +1,6 @@
 ---
 title: Parameter Tuning Guide
-description: Learn how to optimize logpare's parameters for different log types
+description: Diagnose too many or too few templates and pick depth, simThreshold, maxChildren, and maxClusters for your log type.
 ---
 
 Learn how to optimize logpare's parameters for different log types and use cases.
@@ -9,12 +9,24 @@ Learn how to optimize logpare's parameters for different log types and use cases
 
 logpare has four key parameters that control template generation:
 
-| Parameter | Default | Range | Effect |
-|-----------|---------|-------|--------|
-| `depth` | 4 | 2-8 | Parse tree depth - higher = more specific templates |
+| Parameter | Default | Useful range | Effect |
+|-----------|---------|--------------|--------|
+| `depth` | 4 | 3-6 | Parse tree depth - higher = more specific templates |
 | `simThreshold` | 0.4 | 0.0-1.0 | Similarity threshold - higher = more templates |
 | `maxChildren` | 100 | 10-500 | Max children per node - affects tree width |
-| `maxClusters` | 1000 | 100-10000 | Max total templates - limits memory |
+| `maxClusters` | 1000 | 100-10000 | Max total templates - hard memory bound |
+
+All four live inside the `drain` key of `CompressOptions`:
+
+```typescript
+compress(logs, { drain: { depth: 5, simThreshold: 0.3 } });
+```
+
+`createDrain()` takes them flat instead, because it receives `DrainOptions` directly:
+
+```typescript
+createDrain({ depth: 5, simThreshold: 0.3 });
+```
 
 ## Tuning Strategy
 
@@ -23,7 +35,8 @@ logpare has four key parameters that control template generation:
 **Symptoms:**
 - Hundreds or thousands of templates for a moderate log file
 - Similar-looking templates that should be grouped together
-- High compression ratio (e.g., 0.8 or 0.9)
+- Low `compressionRatio` — remember it is `1 - templates/lines`, so **higher is better**;
+  0.2 on a repetitive log means grouping is failing
 
 **Solutions:**
 
@@ -33,7 +46,7 @@ Make template matching more lenient:
 
 ```typescript
 compress(logs, {
-  simThreshold: 0.3, // More aggressive grouping
+  drain: { simThreshold: 0.3 }, // More aggressive grouping
 });
 ```
 
@@ -67,7 +80,7 @@ const strategy = defineStrategy({
   }
 });
 
-compress(logs, { preprocessing: strategy });
+compress(logs, { drain: { preprocessing: strategy } });
 ```
 
 ### Problem: Templates Too Generic
@@ -75,6 +88,7 @@ compress(logs, { preprocessing: strategy });
 **Symptoms:**
 - Very few templates (e.g., 5-10 for thousands of lines)
 - Templates grouping unrelated log types together
+- `compressionRatio` very close to 1.0 on logs you know are heterogeneous
 - Loss of important diagnostic information
 
 **Solutions:**
@@ -85,7 +99,7 @@ Make template matching more strict:
 
 ```typescript
 compress(logs, {
-  simThreshold: 0.5, // More conservative grouping
+  drain: { simThreshold: 0.5 }, // More conservative grouping
 });
 ```
 
@@ -95,7 +109,7 @@ Allow the algorithm to consider more tokens:
 
 ```typescript
 compress(logs, {
-  depth: 5, // or 6
+  drain: { depth: 5 }, // or 6
 });
 ```
 
@@ -119,7 +133,7 @@ Cap the total number of templates:
 
 ```typescript
 compress(logs, {
-  maxClusters: 500,
+  drain: { maxClusters: 500 },
 });
 ```
 
@@ -129,7 +143,7 @@ Prevent tree explosion:
 
 ```typescript
 compress(logs, {
-  maxChildren: 50,
+  drain: { maxChildren: 50 },
 });
 ```
 
@@ -163,8 +177,7 @@ These logs have consistent fields and formatting:
 
 ```typescript
 compress(logs, {
-  depth: 3,
-  simThreshold: 0.5,
+  drain: { depth: 3, simThreshold: 0.5 },
 });
 ```
 
@@ -179,8 +192,7 @@ Logs with variable formatting and many unique values:
 
 ```typescript
 compress(logs, {
-  depth: 5,
-  simThreshold: 0.3,
+  drain: { depth: 5, simThreshold: 0.3 },
 });
 ```
 
@@ -195,8 +207,7 @@ Well-formatted system logs with standard patterns:
 
 ```typescript
 compress(logs, {
-  depth: 4,        // Default
-  simThreshold: 0.4, // Default
+  drain: { depth: 4, simThreshold: 0.4 }, // both are the defaults
 });
 ```
 
@@ -211,10 +222,12 @@ Optimize for memory efficiency:
 
 ```typescript
 compress(logs, {
-  depth: 4,
-  simThreshold: 0.4,
-  maxClusters: 500,
-  maxChildren: 50,
+  drain: {
+    depth: 4,
+    simThreshold: 0.4,
+    maxClusters: 500,
+    maxChildren: 50,
+  },
 });
 ```
 
@@ -224,8 +237,7 @@ HTTP request logs with standard formats:
 
 ```typescript
 compress(logs, {
-  depth: 6,
-  simThreshold: 0.5,
+  drain: { depth: 6, simThreshold: 0.5 },
 });
 ```
 
@@ -249,7 +261,7 @@ const strategy = defineStrategy({
   }
 });
 
-compress(logs, { preprocessing: strategy });
+compress(logs, { drain: { preprocessing: strategy } });
 ```
 
 **Use case:** When early tokens are highly variable but later tokens are consistent.
@@ -263,13 +275,20 @@ Monitor how well compression is working:
 ```typescript
 const result = compress(logs);
 
-console.log(`Compression ratio: ${result.stats.compressionRatio}`);
-console.log(`Token reduction: ${result.stats.estimatedTokenReduction}%`);
+// Both are ratios between 0 and 1, not percentages.
+console.log(`Compression ratio: ${(result.stats.compressionRatio * 100).toFixed(1)}%`);
+console.log(`Token reduction: ${(result.stats.estimatedTokenReduction * 100).toFixed(1)}%`);
 
-if (result.stats.compressionRatio > 0.5) {
+if (result.stats.compressionRatio < 0.5) {
   console.log('⚠️  Low compression - consider lowering simThreshold');
-} else if (result.stats.compressionRatio < 0.05) {
+} else if (result.stats.compressionRatio > 0.995) {
   console.log('⚠️  Very high compression - templates may be too generic');
+}
+
+// A non-zero droppedLines means the numbers above are optimistic:
+// lines past the maxClusters cap were thrown away, not compressed.
+if ((result.stats.droppedLines ?? 0) > 0) {
+  console.log(`⚠️  ${result.stats.droppedLines} lines dropped - raise maxClusters`);
 }
 ```
 
@@ -278,7 +297,7 @@ if (result.stats.compressionRatio > 0.5) {
 Check if templates are well-distributed:
 
 ```typescript
-const result = compress(logs, { format: 'json' });
+const result = compress(logs);
 
 const occurrences = result.templates.map(t => t.occurrences);
 const avg = occurrences.reduce((a, b) => a + b, 0) / occurrences.length;
@@ -296,10 +315,11 @@ if (max > avg * 10) {
 
 | Problem | Solution | Parameter Change |
 |---------|----------|------------------|
-| Too many templates | Lower threshold | `simThreshold: 0.3` |
-| Templates too generic | Raise threshold | `simThreshold: 0.5` |
-| Missing grouping | Increase depth | `depth: 5` |
-| Memory issues | Limit clusters | `maxClusters: 500` |
+| Too many templates | Lower threshold | `drain: { simThreshold: 0.3 }` |
+| Templates too generic | Raise threshold | `drain: { simThreshold: 0.5 }` |
+| Missing grouping | Increase depth | `drain: { depth: 5 } `|
+| Memory issues | Limit clusters | `drain: { maxClusters: 500 }` |
+| `droppedLines > 0` | Cap was hit, output incomplete | Raise `drain.maxClusters` |
 | Unmasked variables | Custom preprocessing | Add patterns |
 
 Remember: The best settings depend on your specific log format and use case. Start with defaults and adjust based on results.

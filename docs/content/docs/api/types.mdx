@@ -1,6 +1,6 @@
 ---
 title: Types Reference
-description: Complete TypeScript type definitions for logpare
+description: Every exported TypeScript interface, type alias, constant, and utility function, with its real shape.
 ---
 
 Complete TypeScript type definitions for logpare.
@@ -52,9 +52,9 @@ interface Template {
 - `id` - Unique template identifier
 - `pattern` - Template pattern with `<*>` wildcards for variables
 - `occurrences` - Number of log lines matching this template
-- `sampleVariables` - Sample values captured from variables (limited by `maxSamples`)
-- `firstSeen` - Line number where template was first seen
-- `lastSeen` - Line number where template was last seen
+- `sampleVariables` - Sample values captured from variables (limited by `maxSamples`). Serialized as `samples` in JSON output.
+- `firstSeen` - **Zero-based** line index where the template was first seen. The `detailed` formatter displays this as a one-based line number.
+- `lastSeen` - Zero-based line index where the template was last seen
 - `severity` - Severity level: `'error'`, `'warning'`, or `'info'`
 - `urlSamples` - Extracted hostnames from URLs
 - `fullUrlSamples` - Complete URLs found in matching logs
@@ -73,17 +73,26 @@ interface CompressionStats {
   uniqueTemplates: number;
   compressionRatio: number;
   estimatedTokenReduction: number;
+  droppedLines?: number;
   processingTimeMs?: number;
 }
 ```
 
 **Fields:**
 
-- `inputLines` - Number of input log lines processed
-- `uniqueTemplates` - Number of unique templates discovered
-- `compressionRatio` - Ratio of templates to input lines (0.0 to 1.0)
-- `estimatedTokenReduction` - Estimated token savings as percentage (0-100)
-- `processingTimeMs` - Time taken to process (milliseconds)
+- `inputLines` - Non-blank input log lines processed. Blank and whitespace-only lines are
+  excluded, so a trailing newline does not change this figure.
+- `uniqueTemplates` - Number of unique templates discovered, before `maxTemplates` truncation
+- `compressionRatio` - `1 - (uniqueTemplates / inputLines)`, clamped to `0.0`–`1.0`.
+  **Higher means more compression.**
+- `estimatedTokenReduction` - Estimated saving as a **ratio between 0 and 1**, not a
+  percentage. Character-count proxy: each pattern's length times its occurrences, versus
+  the pattern printed once.
+- `droppedLines` - Lines discarded because `maxClusters` was reached. **Non-zero means the
+  output is incomplete** and `compressionRatio` overstates the real result. Optional on the
+  interface for backwards compatibility; logpare itself always populates it.
+- `processingTimeMs` - Wall-clock processing time. Populated by `compress()` and
+  `compressText()`, not by `Drain.getResult()`.
 
 ## Options Types
 
@@ -103,8 +112,8 @@ interface CompressOptions {
 **Fields:**
 
 - `format` - Output format: `'summary'`, `'detailed'`, `'json'`, or `'json-stable'`
-  (default: `'summary'`). `'json-stable'` sorts keys and omits volatile fields for
-  stable diffs and LLM KV-cache hits.
+  (default: `'summary'`). `'json-stable'` emits the same data as `'json'` with recursively
+  sorted keys and no whitespace, for stable diffs and LLM KV-cache hits.
 - `maxTemplates` - Maximum templates in formatted output (default: `50`)
 - `drain` - Nested `DrainOptions`. These are **not** accepted at the top level —
   pass them as `{ drain: { depth: 5 } }`.
@@ -128,9 +137,9 @@ interface DrainOptions {
 **Fields:**
 
 - `depth` - Parse tree depth (default: `4`)
-- `simThreshold` - Similarity threshold 0-1 (default: `0.4`)
+- `simThreshold` - Similarity threshold 0-1 (default: `0.4`). When omitted, the parsing strategy stays authoritative and may vary the threshold by depth; when supplied, it overrides the strategy at every depth.
 - `maxChildren` - Max children per tree node (default: `100`)
-- `maxClusters` - Max total templates (default: `1000`)
+- `maxClusters` - Max total templates (default: `1000`). Once reached, unmatched lines are discarded and counted in `stats.droppedLines`.
 - `maxSamples` - Sample variables per template (default: `3`)
 - `preprocessing` - Custom preprocessing strategy
 - `onProgress` - Progress reporting callback
@@ -197,7 +206,7 @@ Progress event data.
 interface ProgressEvent {
   processedLines: number;
   totalLines?: number;
-  currentPhase: ProcessingPhase;
+  currentPhase: 'parsing' | 'clustering' | 'finalizing';
   percentComplete?: number;
 }
 ```
@@ -209,12 +218,13 @@ interface ProgressEvent {
 - `currentPhase` - Current processing phase
 - `percentComplete` - Completion percentage 0-100 (only if `totalLines` known)
 
-### ProcessingPhase
+### Processing phase
 
-Current phase of the compression operation.
+`currentPhase` is an inline union on `ProgressEvent`; there is no exported
+`ProcessingPhase` alias.
 
 ```typescript
-type ProcessingPhase = 'parsing' | 'clustering' | 'finalizing';
+'parsing' | 'clustering' | 'finalizing'
 ```
 
 ## Enum Types
@@ -243,9 +253,14 @@ type OutputFormat = 'summary' | 'detailed' | 'json' | 'json-stable';
 
 - `'summary'` - Compact template list with frequencies
 - `'detailed'` - Full templates with all metadata
-- `'json'` - Machine-readable JSON
-- `'json-stable'` - Cache-optimized JSON with sorted keys and volatile fields omitted,
-  for maximum LLM KV-cache hits and stable diffs
+- `'json'` - Machine-readable JSON, pretty printed
+- `'json-stable'` - The same JSON with recursively sorted keys and no whitespace, for
+  maximum LLM KV-cache hits and stable diffs
+
+Both JSON formats emit `version`, a four-field `stats` object (`inputLines`,
+`uniqueTemplates`, `compressionRatio`, `estimatedTokenReduction`, each ratio rounded to
+three decimals), and `templates`. `processingTimeMs` and `droppedLines` are not included in
+JSON output — read them from `result.stats` instead.
 
 ## Constants
 
@@ -270,18 +285,33 @@ const pattern = `ERROR Connection to ${WILDCARD} failed`;
 Built-in regex patterns for common log variables.
 
 ```typescript
-const DEFAULT_PATTERNS: {
-  ipv4: RegExp;
-  ipv6: RegExp;
-  uuid: RegExp;
-  timestamp: RegExp;
-  hexId: RegExp;
-  filepath: RegExp;
-  url: RegExp;
-  number: RegExp;
-  // ... more patterns
-};
+const DEFAULT_PATTERNS: Record<string, RegExp>;
 ```
+
+Insertion order matters — patterns are applied in sequence, and more specific patterns run
+first so they are not fragmented by broader ones. The keys, in application order:
+
+| Key | Matches |
+|---|---|
+| `isoTimestamp` | ISO 8601 timestamps, with optional fraction and offset |
+| `clockTime` | Bare `HH:MM:SS` clock times (syslog style) |
+| `uuid` | UUIDs |
+| `unixTimestamp` | 10–13 digit epoch values |
+| `url` | `http(s)://…` |
+| `ipv4` | IPv4 addresses |
+| `ipv6` | IPv6 addresses, full and compressed |
+| `port` | `:1234` style port suffixes |
+| `hexId` | `0x…` hex identifiers |
+| `blockId` | HDFS `blk_…` block IDs |
+| `filePath` | Multi-segment file paths |
+| `numericId` | Bare integers of 6+ digits |
+| `numbers` | Any bare number, with optional duration/size suffix (`250ms`, `1.5s`, `100KB`) |
+
+<Callout type="warn">
+Because `numbers` masks every bare integer, short numbers such as an HTTP `404` or a
+`line:123` are **not** preserved by the default pattern set. Supply a custom strategy that
+omits `numbers` if you need them kept.
+</Callout>
 
 **Example:**
 
@@ -305,14 +335,17 @@ const SEVERITY_PATTERNS: {
 
 ### STACK_FRAME_PATTERNS
 
-Regex patterns for stack frame detection.
+Readonly **array** of regex patterns for stack frame detection — V8/Node, Firefox (bare and
+named), Chrome DevTools anonymous, and `functionName @ file.js:123` forms.
 
 ```typescript
-const STACK_FRAME_PATTERNS: {
-  v8: RegExp;
-  firefox: RegExp;
-  chrome: RegExp;
-};
+const STACK_FRAME_PATTERNS: readonly RegExp[];
+```
+
+```typescript
+import { STACK_FRAME_PATTERNS } from 'logpare';
+
+const isFrame = STACK_FRAME_PATTERNS.some((p) => p.test(line));
 ```
 
 ## Utility Functions
@@ -372,24 +405,76 @@ extractUrls('Fetched http://cdn.example.com/image.png');
 // ['cdn.example.com']
 ```
 
+### Other diagnostic extractors
+
+These back the corresponding `Template.*Samples` fields and are exported for direct use.
+
+```typescript
+function extractFullUrls(line: string): string[];       // complete URLs, not just hostnames
+function extractStatusCodes(line: string): number[];    // status 404, HTTP/1.1 500, code=200
+function extractCorrelationIds(line: string): string[]; // trace-id: xxx, request-id: xxx, UUIDs
+function extractDurations(line: string): string[];      // ms, s, sec, µs, us, ns, min, h, hr
+```
+
+Run them on the **raw** line, before masking — the default patterns replace most of what
+they look for with `<*>`.
+
+## Classes
+
+### Drain
+
+The Drain instance class, exported alongside [`createDrain()`](/docs/api/create-drain) for
+`instanceof` checks and subclassing.
+
+```typescript
+class Drain {
+  constructor(options?: DrainOptions);
+  addLogLine(line: string): LogCluster | null;
+  addLogLines(lines: string[]): void;
+  getTemplates(): Template[];
+  getResult(format?: OutputFormat, maxTemplates?: number): CompressionResult;
+  get totalLines(): number;
+  get totalClusters(): number;
+}
+```
+
+`LogCluster` is internal and is **not** exported from `logpare`. Read templates through
+`getTemplates()` or `getResult()`.
+
+## Strategy Helpers
+
 ### defineStrategy()
 
 Create a custom preprocessing strategy.
 
 ```typescript
 function defineStrategy(
-  overrides: Partial<ParsingStrategy>
+  overrides: Partial<ParsingStrategy> & { patterns?: Record<string, RegExp> }
 ): ParsingStrategy;
 ```
+
+Anything you do not override falls back to the default strategy. The extra `patterns` key
+is a shortcut: supply additional regexes and they are merged over `DEFAULT_PATTERNS` once,
+at definition time, and used to build `preprocess` for you. Supplying your own `preprocess`
+takes precedence and ignores `patterns`.
 
 **Example:**
 
 ```typescript
 import { defineStrategy } from 'logpare';
 
-const strategy = defineStrategy({
+// Custom tokenization, default masking
+const csv = defineStrategy({
   tokenize: (line) => line.split(','),
-  getSimThreshold: (depth) => 0.5,
+  getSimThreshold: () => 0.5,
+});
+
+// Default masking plus your own patterns
+const withIds = defineStrategy({
+  patterns: {
+    orderId: /order-[A-Z0-9]{8}/g,
+    sessionId: /sess_[a-f0-9]{32}/gi,
+  },
 });
 ```
 

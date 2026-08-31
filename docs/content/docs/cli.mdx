@@ -1,6 +1,6 @@
 ---
 title: CLI Reference
-description: Complete reference for the logpare command-line interface
+description: Every flag the logpare CLI accepts, with real defaults, exit codes, and piping recipes.
 ---
 
 Complete reference for the logpare command-line interface.
@@ -23,7 +23,17 @@ npx logpare server.log
 
 ```bash
 logpare [options] [files...]
+cat logs.txt | logpare [options]
 ```
+
+<Callout type="warn">
+There is no `compress` subcommand. `logpare compress app.log` is read as two file paths and
+fails with `Error: File not found: compress`. Pass options and paths directly.
+</Callout>
+
+With no file arguments, logpare reads stdin. With no file arguments **and** a TTY on stdin,
+it exits `1` with a usage hint. Multiple files are concatenated before compression, so
+templates are shared across them.
 
 ### Compress a Single File
 
@@ -53,7 +63,7 @@ journalctl -u myapp | logpare
 
 #### `--format <format>` / `-f <format>`
 
-Output format: `summary`, `detailed`, or `json`
+Output format: `summary`, `detailed`, `json`, or `json-stable`
 
 **Default:** `summary`
 
@@ -68,7 +78,12 @@ logpare --format detailed server.log
 
 # JSON format for programmatic processing
 logpare --format json server.log
+
+# Deterministic JSON (sorted keys, no whitespace) for diffing and prompt caching
+logpare --format json-stable server.log
 ```
+
+An unrecognised format is rejected with an error and exit code 1.
 
 ### Output Destination
 
@@ -77,6 +92,9 @@ logpare --format json server.log
 Write output to a file instead of stdout
 
 **Examples:**
+
+When `--output` is used, the compressed result goes to the file and a short
+`Output written to <file>` confirmation goes to **stderr**, keeping stdout clean.
 
 ```bash
 # Write to file
@@ -93,7 +111,8 @@ cat access.log | logpare -o summary.txt
 
 #### `--depth <number>` / `-d <number>`
 
-Parse tree depth (2-8)
+Parse tree depth. Any integer `>= 1`; values between 3 and 6 are the useful range in
+practice.
 
 **Default:** `4`
 
@@ -143,7 +162,7 @@ logpare --max-clusters 500 large.log
 
 #### `--max-templates <number>` / `-n <number>`
 
-Maximum templates in output (summary/detailed only)
+Maximum templates in the output, in every format.
 
 **Default:** `50`
 
@@ -151,9 +170,12 @@ Maximum templates in output (summary/detailed only)
 # Show only top 20 templates
 logpare --max-templates 20 server.log
 
-# Show all templates
-logpare --max-templates 0 server.log
+# Raise the cap rather than removing it
+logpare --max-templates 1000 server.log
 ```
+
+Must be a positive integer — `0` is rejected with exit code 1. There is no "show all"
+sentinel; pass a number at least as large as `--max-clusters` instead.
 
 ### Help & Version
 
@@ -196,16 +218,21 @@ logpare server.log
 logpare --format detailed error.log
 
 # Output:
-# === Detailed Compression Results ===
+# === Log Compression Details ===
+# Input: 1,000 lines → 12 templates (98.8% reduction)
+# Estimated token reduction: 96.3%
 #
-# Template #1 (450 occurrences)
-#   Pattern: ERROR Connection to <*> failed
-#   Severity: error
-#   First seen: line 1
-#   Last seen: line 998
-#   Sample values: [["192.168.1.100"], ["192.168.1.101"]]
-#   URLs: api.example.com, cdn.example.com
-#   Status codes: 500, 503
+# === Template t001 (450 occurrences) ===
+# Pattern: ERROR Connection to <*> failed
+# Severity: error
+# First seen: line 1
+# Last seen: line 998
+# URLs:
+#   - https://api.example.com/v1/users
+# Status codes: 500, 503
+# Sample variables:
+#   - 192.168.1.100
+#   - 192.168.1.101
 ```
 
 ### JSON Output
@@ -256,38 +283,10 @@ logpare --max-clusters 500 --max-children 50 huge.log
 
 | Code | Meaning |
 |------|---------|
-| 0 | Success |
-| 1 | General error (invalid arguments, file not found, etc.) |
-| 2 | Input/output error (can't read file, can't write output) |
+| 0 | Success (also used by `--help` and `--version`) |
+| 1 | Any error: invalid option value, unknown format, file not found, empty input |
 
-## Environment Variables
-
-### `LOGPARE_DEPTH`
-
-Default depth value
-
-```bash
-export LOGPARE_DEPTH=5
-logpare server.log  # Uses depth=5
-```
-
-### `LOGPARE_THRESHOLD`
-
-Default similarity threshold
-
-```bash
-export LOGPARE_THRESHOLD=0.3
-logpare server.log  # Uses threshold=0.3
-```
-
-### `LOGPARE_FORMAT`
-
-Default output format
-
-```bash
-export LOGPARE_FORMAT=detailed
-logpare server.log  # Uses detailed format
-```
+There is no distinct I/O exit code — every failure path exits `1`.
 
 ## Troubleshooting
 

@@ -7,7 +7,11 @@ OIDC trusted publishing is set up and working for both packages:
 | Package | npm URL | Trusted Publisher |
 |---------|---------|-------------------|
 | `logpare` | https://www.npmjs.com/package/logpare | `logpare/logpare` → `publish.yml` |
-| `@logpare/mcp` | https://www.npmjs.com/package/@logpare/mcp | `logpare/logpare` → `publish.yml` |
+| `@logpare/mcp` | https://www.npmjs.com/package/@logpare/mcp *(not published yet — 404)* | `logpare/logpare` → `publish.yml` |
+
+> **Status note:** trusted publishing is configured for both packages, but only `logpare`
+> has actually been published. `@logpare/mcp` returns a registry 404, so documentation
+> must not present `npx`/`npm install @logpare/mcp` as working commands.
 
 ## Publishing a New Version
 

@@ -31,6 +31,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # llms.txt and llms-full.txt are generated from docs/content/docs/**.
+      # Fail fast if someone edited the MDX without regenerating them.
+      - name: Check generated llms files
+        run: pnpm docs:llms:check
+
       - name: Type check
         run: pnpm typecheck
 

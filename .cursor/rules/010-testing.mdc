@@ -14,11 +14,12 @@ describe('Drain algorithm', () => {
     const drain = createDrain();
 
     // Act
-    drain.process('ERROR connection timeout');
-    drain.process('INFO request completed');
+    drain.addLogLine('ERROR connection timeout');
+    drain.addLogLine('INFO request completed');
 
     // Assert
-    expect(drain.getClusters().length).toBe(2);
+    expect(drain.getTemplates().length).toBe(2);
+    expect(drain.totalClusters).toBe(2);
   });
 });
 ```

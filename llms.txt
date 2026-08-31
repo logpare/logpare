@@ -1,88 +1,79 @@
 # logpare
 
-> Semantic log compression library for LLM context windows. Uses the Drain algorithm to extract templates from repetitive log data, achieving 60-90% token reduction while preserving diagnostic information.
+> Semantic log compression for LLM context windows. Uses the Drain algorithm to collapse
+> repetitive log lines into templates with occurrence counts, reducing tokens by 60-90%
+> while preserving diagnostic information (severity, URLs, status codes, correlation IDs,
+> durations).
 
-## Quick Start
-
-```typescript
-import { compress } from 'logpare';
-
-const logs = [
-  'ERROR Connection to 192.168.1.100 failed',
-  'ERROR Connection to 192.168.1.101 failed',
-  'INFO Request processed in 45ms',
-];
-
-const result = compress(logs);
-console.log(result.formatted);
-// ERROR Connection to <*> failed (2 occurrences)
-// INFO Request processed in <*> (1 occurrence)
-```
-
-## Installation
+## Install
 
 ```bash
 npm install logpare
 ```
 
-## Core API
-
-- `compress(lines: string[], options?): CompressionResult` - Compress log lines into templates
-- `compressText(text: string, options?): CompressionResult` - Compress multiline text
-- `createDrain(options?): Drain` - Create Drain instance for incremental processing
-
-## Key Options
+## Minimal example
 
 ```typescript
-interface DrainOptions {
-  depth?: number;           // Parse tree depth (default: 4)
-  simThreshold?: number;    // Similarity threshold 0-1 (default: 0.4)
-  maxChildren?: number;     // Max children per node (default: 100)
-  maxClusters?: number;     // Max templates (default: 1000)
-  format?: 'summary' | 'detailed' | 'json';
-}
+import { compress } from 'logpare';
+
+const result = compress([
+  'ERROR Connection to 192.168.1.100 failed',
+  'ERROR Connection to 192.168.1.101 failed',
+  'INFO Request processed in 45ms',
+]);
+
+console.log(result.formatted);
+// === Log Compression Summary ===
+// Input: 3 lines → 2 templates (33.3% reduction)
+//
+// Top templates by frequency:
+// 1. [2x] ERROR Connection to <*> failed
+// 2. [1x] INFO Request processed in <*>
 ```
 
-## Output Formats
+## Which interface
 
-- `summary` - Compact template list with frequencies
-- `detailed` - Full templates with sample variables and metadata
-- `json` - Machine-readable JSON output
+- **CLI** — you have a file or a pipe and want compressed text now: `logpare app.log`,
+  `cat /var/log/syslog | logpare`. No `compress` subcommand exists; pass options and paths
+  directly.
+- **Library** — you are writing code that reads `result.templates` / `result.stats`, needs
+  custom masking, or feeds lines in incrementally via `createDrain()`.
 
-## Template Structure
+Algorithm options are nested: `compress(logs, { drain: { depth: 5 } })`. `createDrain()`
+takes them flat. Compression is a diagnostic representation, not an archive — keep the
+original logs.
 
-Each template contains:
-- `pattern: string` - Template with `<*>` wildcards
-- `occurrences: number` - Match count
-- `sampleVariables: string[][]` - Captured variable values
-- `severity: 'error' | 'warning' | 'info'` - Auto-detected severity
-- `urlSamples`, `statusCodeSamples`, `durationSamples` - Diagnostic metadata
+## Documentation
 
-## CLI Usage
+- [Getting Started](https://logpare.com/docs.md): What logpare does, the problem it solves, and where to go next — start here.
+- [Installation](https://logpare.com/docs/installation.md): Install logpare globally, per-project, or run it with npx, and confirm the install works.
+- [Quick Start](https://logpare.com/docs/quick-start.md): Compress your first log file from the CLI and from TypeScript, and read the output formats.
 
-```bash
-# Compress log file
-logpare compress access.log
+## API reference
 
-# With options
-logpare compress --format detailed --depth 5 app.log
+- [compress()](https://logpare.com/docs/api/compress.md): Compress an array of log lines into semantic templates — the main entry point for most callers.
+- [compressText()](https://logpare.com/docs/api/compress-text.md): Compress a multiline string of log data — a thin wrapper over compress() that splits on newlines.
+- [createDrain()](https://logpare.com/docs/api/create-drain.md): Create a Drain instance for incremental or streaming log processing, when you need to feed lines in over time instead of all at once.
+- [Types Reference](https://logpare.com/docs/api/types.md): Every exported TypeScript interface, type alias, constant, and utility function, with its real shape.
 
-# Pipe from stdin
-cat logs/*.log | logpare compress
-```
+## Guides
 
-## Links
+- [Parameter Tuning Guide](https://logpare.com/docs/guides/parameter-tuning.md): Diagnose too many or too few templates and pick depth, simThreshold, maxChildren, and maxClusters for your log type.
+- [Custom Preprocessing](https://logpare.com/docs/guides/custom-preprocessing.md): Mask domain-specific IDs, retokenize non-whitespace log formats, and vary the similarity threshold by depth.
+- [MCP Integration](https://logpare.com/docs/guides/mcp-integration.md): Current status of the logpare MCP server, how to run it from source today, and the client configs it will use once published.
 
-- [GitHub Repository](https://github.com/logpare/logpare)
-- [npm Package](https://www.npmjs.com/package/logpare)
-- [MCP Server](https://www.npmjs.com/package/@logpare/mcp)
+## Reference
 
-## MCP Integration
+- [CLI Reference](https://logpare.com/docs/cli.md): Every flag the logpare CLI accepts, with real defaults, exit codes, and piping recipes.
 
-For AI coding assistants (Claude, Cursor, etc.), use the MCP server:
+## More
 
-```bash
-npm install -g @logpare/mcp
-```
+- [Full documentation](https://logpare.com/llms-full.txt): Every page above concatenated, for when you want the whole reference in one fetch.
+- [Source repository](https://github.com/logpare/logpare): Issues, contributing guide, and the MCP server package.
+- [npm package](https://www.npmjs.com/package/logpare): Published releases and install instructions.
 
-Configure in Claude Desktop or Cursor to enable direct log compression from your AI assistant.
+## MCP
+
+An MCP server lives in this repository at `packages/mcp`. It is **not published to npm**,
+so `npx @logpare/mcp` will fail; build it from source and point your client at
+`packages/mcp/dist/cli.js`. See the MCP integration page above.

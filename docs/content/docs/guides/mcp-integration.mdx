@@ -1,6 +1,6 @@
 ---
 title: MCP Integration
-description: Integrate logpare with AI coding assistants via the Model Context Protocol
+description: Current status of the logpare MCP server, how to run it from source today, and the client configs it will use once published.
 ---
 
 import { UCPBadge } from '@/components/ucp-badge'
@@ -8,6 +8,15 @@ import { UCPBadge } from '@/components/ucp-badge'
 Learn how to integrate logpare with AI coding assistants via the Model Context Protocol (MCP).
 
 <UCPBadge />
+
+<Callout type="warn">
+**`@logpare/mcp` is not published to npm yet.** Every `npx -y @logpare/mcp` and
+`npm install -g @logpare/mcp` command on this page will currently fail with a registry
+404. The server lives in this repository at
+[`packages/mcp`](https://github.com/logpare/logpare/tree/main/packages/mcp) — see
+[Running it from source](#running-it-from-source) below for what works today. The
+per-client configuration blocks are kept here as a reference for when the package ships.
+</Callout>
 
 ## Overview
 
@@ -30,7 +39,45 @@ logpare provides an MCP server that exposes log compression capabilities as tool
 | ChatGPT | HTTP* | Settings → Connectors |
 | Gemini | stdio | `~/.config/gcloud/mcp-config.json` |
 
-> **Note**: @logpare/mcp currently supports **stdio transport only**. Clients marked with * require hosting the MCP server with an HTTP adapter.
+> **Note**: `@logpare/mcp` currently supports **stdio transport only**. Clients marked with * require hosting the MCP server with an HTTP adapter.
+
+---
+
+## Running it from source
+
+Until the package is published, clone the monorepo and build the server, then point your
+client at the built entry point by absolute path.
+
+```bash
+git clone https://github.com/logpare/logpare.git
+cd logpare
+pnpm install
+pnpm build                              # builds the logpare library it depends on
+pnpm --filter @logpare/mcp build        # builds packages/mcp/dist
+```
+
+Verify the build:
+
+```bash
+node packages/mcp/dist/cli.js --test
+```
+
+Then use an absolute path in any client config that would otherwise call `npx`:
+
+```json
+{
+  "mcpServers": {
+    "logpare": {
+      "command": "node",
+      "args": ["/absolute/path/to/logpare/packages/mcp/dist/cli.js"]
+    }
+  }
+}
+```
+
+Every config block below works the same way: replace `"command": "npx"` and the
+`"-y", "@logpare/mcp"` arguments with the pair above, and keep whatever optional flags
+that block already had. A block showing `--ucp` keeps `--ucp`; a basic block stays basic.
 
 ---
 
@@ -72,16 +119,14 @@ logpare provides an MCP server that exposes log compression capabilities as tool
 
 ### With Custom Settings
 
+Defaults are set with CLI flags, not environment variables:
+
 ```json
 {
   "mcpServers": {
     "logpare": {
       "command": "npx",
-      "args": ["-y", "@logpare/mcp", "--ucp"],
-      "env": {
-        "LOGPARE_MCP_FORMAT": "detailed",
-        "LOGPARE_MCP_DEPTH": "5"
-      }
+      "args": ["-y", "@logpare/mcp", "--ucp", "--format", "detailed", "--depth", "5"]
     }
   }
 }
@@ -105,12 +150,20 @@ After restart, look for the MCP server indicator (hammer icon) in the bottom-rig
 
 ### Add via CLI
 
+These `npx` forms will fail until the package is published — use the source build below.
+
 ```bash
 # Basic installation
 claude mcp add logpare -s user -- npx -y @logpare/mcp
 
 # With UCP extension
 claude mcp add logpare -s user -- npx -y @logpare/mcp --ucp
+```
+
+Working today, from a local build:
+
+```bash
+claude mcp add logpare -s user -- node /absolute/path/to/logpare/packages/mcp/dist/cli.js
 ```
 
 ### Configuration File
@@ -154,22 +207,6 @@ claude mcp list
     "logpare": {
       "command": "npx",
       "args": ["-y", "@logpare/mcp", "--ucp"]
-    }
-  }
-}
-```
-
-### With Environment Variables
-
-```json
-{
-  "mcpServers": {
-    "logpare": {
-      "command": "npx",
-      "args": ["-y", "@logpare/mcp"],
-      "env": {
-        "LOGPARE_MCP_FORMAT": "${env:LOGPARE_FORMAT}"
-      }
     }
   }
 }
@@ -429,18 +466,12 @@ Options:
   --max-lines, -m     Max lines per request (default: 100000)
   --test              Run self-test
   --help, -h          Show help
+  --version, -v       Show version
 ```
 
----
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `LOGPARE_MCP_FORMAT` | Default output format | `summary` |
-| `LOGPARE_MCP_DEPTH` | Drain algorithm depth | `4` |
-| `LOGPARE_MCP_THRESHOLD` | Similarity threshold | `0.4` |
-| `LOGPARE_MCP_MAX_LINES` | Max lines per request | `100000` |
+`--depth` must be between 2 and 8 and `--threshold` between 0.0 and 1.0; the server exits
+with an error otherwise. There are no `LOGPARE_MCP_*` environment variables — these flags
+are the only way to change the defaults.
 
 ---
 
@@ -450,14 +481,15 @@ Options:
 
 1. Verify JSON syntax is valid
 2. Restart the client application completely
-3. Check that `npx` is available in PATH
-4. Run `npx @logpare/mcp --test` to verify installation
+3. While the package is unpublished, `npx @logpare/mcp` cannot resolve — use the absolute
+   path from [Running it from source](#running-it-from-source)
+4. Run `node packages/mcp/dist/cli.js --test` to verify the build
 
 ### Tools Not Working
 
 1. Check client's MCP logs for errors
 2. Verify the server is connected (look for status indicators)
-3. Ensure you have the latest version: `npm update -g @logpare/mcp`
+3. Rebuild after pulling: `pnpm --filter @logpare/mcp build`
 
 ### Performance Issues
 

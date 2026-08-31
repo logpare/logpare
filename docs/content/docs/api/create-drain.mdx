@@ -1,14 +1,23 @@
 ---
 title: createDrain()
-description: Create a Drain instance for incremental or streaming log processing
+description: Create a Drain instance for incremental or streaming log processing, when you need to feed lines in over time instead of all at once.
 ---
 
-Create a Drain instance for incremental or streaming log processing. Use this for advanced scenarios where you need fine-grained control over the compression pipeline.
+Create a `Drain` instance for incremental or streaming log processing. Use this when log
+lines arrive over time, or when you want to inspect templates between batches.
 
 ## Signature
 
 ```typescript
 function createDrain(options?: DrainOptions): Drain
+```
+
+The `Drain` class itself is also exported, for `instanceof` checks and subclassing:
+
+```typescript
+import { Drain, createDrain } from 'logpare';
+
+const drain = new Drain({ depth: 5 });   // equivalent to createDrain({ depth: 5 })
 ```
 
 ## Parameters
@@ -18,7 +27,9 @@ function createDrain(options?: DrainOptions): Drain
 - Type: `DrainOptions`
 - Required: No
 
-Configuration options for the Drain algorithm.
+Configuration options for the Drain algorithm. Unlike [`compress()`](/docs/api/compress),
+these are passed **flat** — `createDrain()` takes `DrainOptions` directly, not the nested
+`{ drain: { ... } }` shape.
 
 #### `options.depth`
 
@@ -30,24 +41,28 @@ Parse tree depth. Higher values create more specific templates.
 #### `options.simThreshold`
 
 - Type: `number`
-- Default: `0.4`
+- Default: `0.4` (from the parsing strategy)
 - Range: `0.0` to `1.0`
 
-Similarity threshold for template matching.
+Similarity threshold for template matching. When omitted, the parsing strategy stays
+authoritative and may vary the threshold by depth. When supplied, this value overrides the
+strategy for every depth.
 
 #### `options.maxChildren`
 
 - Type: `number`
 - Default: `100`
 
-Maximum children per parse tree node.
+Maximum children per parse tree node. Once a node is at capacity, further tokens collapse
+into a single wildcard branch.
 
 #### `options.maxClusters`
 
 - Type: `number`
 - Default: `1000`
 
-Maximum total templates allowed.
+Maximum total templates allowed. Once the cap is reached, lines that do not match an
+existing template are **discarded** and counted in `stats.droppedLines`.
 
 #### `options.maxSamples`
 
@@ -61,30 +76,37 @@ Maximum sample variables per template.
 - Type: `ParsingStrategy`
 - Default: Built-in strategy
 
-Custom preprocessing strategy.
+Custom preprocessing strategy. See [Custom Preprocessing](/docs/guides/custom-preprocessing).
 
 #### `options.onProgress`
 
 - Type: `ProgressCallback`
 - Default: `undefined`
 
-Progress callback for monitoring long-running operations.
+Progress callback. Only `addLogLines()` emits progress events; `addLogLine()` does not.
 
 ## Return Value
 
-Returns a `Drain` instance with the following methods:
+Returns a `Drain` instance with the following public members.
 
-### `process(line: string): void`
+### `addLogLine(line: string): LogCluster | null`
 
-Process a single log line and add it to the appropriate cluster.
+Process a single log line. Returns the cluster the line was assigned to, or `null` when the
+line was blank, tokenized to nothing, or dropped because `maxClusters` was reached.
 
 ```typescript
-drain.process('ERROR Connection failed');
+drain.addLogLine('ERROR Connection failed');
 ```
+
+<Callout type="warn">
+`LogCluster` is an internal class. It is **not** exported from `logpare`, and its shape is
+not part of the public API. Read templates through `getTemplates()` or `getResult()`
+instead of using the returned value.
+</Callout>
 
 ### `addLogLines(lines: string[]): void`
 
-Process multiple log lines at once.
+Process multiple log lines at once, emitting progress events if `onProgress` was supplied.
 
 ```typescript
 drain.addLogLines([
@@ -93,24 +115,44 @@ drain.addLogLines([
 ]);
 ```
 
-### `getClusters(): LogCluster[]`
+### `getTemplates(): Template[]`
 
-Get all discovered clusters (templates).
+Get all discovered templates, in discovery order (not sorted by frequency).
 
 ```typescript
-const clusters = drain.getClusters();
-clusters.forEach(cluster => {
-  console.log(cluster.getPattern());
-});
+for (const template of drain.getTemplates()) {
+  console.log(`[${template.occurrences}x] ${template.pattern}`);
+}
 ```
 
-### `getResult(format?: OutputFormat): CompressionResult`
+See the [Template interface](/docs/api/types#template) for every available field.
 
-Get compression results in the specified format.
+### `getResult(format?: OutputFormat, maxTemplates?: number): CompressionResult`
+
+Get compression results, with templates sorted by occurrence count (descending) and
+truncated to `maxTemplates`.
+
+- `format` — `'summary'` (default), `'detailed'`, `'json'`, or `'json-stable'`
+- `maxTemplates` — default `50`
 
 ```typescript
 const result = drain.getResult('detailed');
 console.log(result.formatted);
+```
+
+Unlike [`compress()`](/docs/api/compress), `getResult()` does not populate
+`stats.processingTimeMs` — the Drain instance does not own the timing window.
+
+### `totalLines: number`
+
+Read-only getter. Number of non-blank lines processed so far.
+
+### `totalClusters: number`
+
+Read-only getter. Number of templates discovered so far.
+
+```typescript
+console.log(`${drain.totalClusters} templates from ${drain.totalLines} lines`);
 ```
 
 ## Examples
@@ -126,9 +168,9 @@ const drain = createDrain({
 });
 
 // Process logs one at a time
-drain.process('ERROR Connection to 192.168.1.1 failed');
-drain.process('ERROR Connection to 192.168.1.2 failed');
-drain.process('INFO Request abc123 completed');
+drain.addLogLine('ERROR Connection to 192.168.1.1 failed');
+drain.addLogLine('ERROR Connection to 192.168.1.2 failed');
+drain.addLogLine('INFO Request abc123 completed');
 
 // Get results
 const result = drain.getResult('summary');
@@ -139,8 +181,8 @@ console.log(result.formatted);
 
 ```typescript
 import { createDrain } from 'logpare';
-import { createReadStream } from 'fs';
-import { createInterface } from 'readline';
+import { createReadStream } from 'node:fs';
+import { createInterface } from 'node:readline';
 
 const drain = createDrain({
   depth: 5,
@@ -156,7 +198,7 @@ const rl = createInterface({
 let lineCount = 0;
 
 rl.on('line', (line) => {
-  drain.process(line);
+  drain.addLogLine(line);
   lineCount++;
 
   if (lineCount % 1000 === 0) {
@@ -227,7 +269,7 @@ drain.addLogLines(logs);
 const result = drain.getResult();
 ```
 
-### Accessing Clusters Directly
+### Inspecting Templates Directly
 
 ```typescript
 import { createDrain } from 'logpare';
@@ -235,21 +277,13 @@ import { createDrain } from 'logpare';
 const drain = createDrain();
 drain.addLogLines(logs);
 
-const clusters = drain.getClusters();
+// getTemplates() returns discovery order — sort it yourself
+const sorted = drain.getTemplates().sort((a, b) => b.occurrences - a.occurrences);
 
-// Sort by occurrence
-const sorted = clusters.sort((a, b) => b.size() - a.size());
-
-// Get top 10 patterns
-const top10 = sorted.slice(0, 10);
-
-top10.forEach((cluster, i) => {
-  console.log(`${i + 1}. [${cluster.size()}x] ${cluster.getPattern()}`);
-
-  // Access metadata
-  const metadata = cluster.getMetadata();
-  console.log(`   Severity: ${metadata.severity}`);
-  console.log(`   URLs: ${metadata.urlSamples.join(', ')}`);
+sorted.slice(0, 10).forEach((template, i) => {
+  console.log(`${i + 1}. [${template.occurrences}x] ${template.pattern}`);
+  console.log(`   Severity: ${template.severity}`);
+  console.log(`   URLs: ${template.urlSamples.join(', ')}`);
 });
 ```
 
@@ -257,7 +291,7 @@ top10.forEach((cluster, i) => {
 
 ```typescript
 import { createDrain } from 'logpare';
-import { spawn } from 'child_process';
+import { spawn } from 'node:child_process';
 
 const drain = createDrain({
   depth: 4,
@@ -274,37 +308,51 @@ tail.stdout.on('data', (data) => {
 
 // Report every 10 seconds
 setInterval(() => {
-  const clusters = drain.getClusters();
-  console.log(`\n=== Current State: ${clusters.length} templates ===`);
+  const templates = drain.getTemplates();
+  console.log(`\n=== Current State: ${templates.length} templates ===`);
 
-  const errors = clusters.filter(c =>
-    c.getMetadata().severity === 'error'
-  );
+  const errors = templates.filter((t) => t.severity === 'error');
 
   if (errors.length > 0) {
     console.log('Error templates:');
-    errors.slice(0, 5).forEach(c => {
-      console.log(`  [${c.size()}x] ${c.getPattern()}`);
+    errors.slice(0, 5).forEach((t) => {
+      console.log(`  [${t.occurrences}x] ${t.pattern}`);
     });
   }
 }, 10000);
 ```
 
+## Watch for dropped lines
+
+The Drain instance is memory-bounded by `maxClusters`. Once the cap is hit, unmatched lines
+are thrown away rather than creating a new template, and `compressionRatio` would otherwise
+look better than reality. Always check `droppedLines`:
+
+```typescript
+const result = drain.getResult();
+
+if ((result.stats.droppedLines ?? 0) > 0) {
+  console.warn(
+    `${result.stats.droppedLines} lines dropped — raise maxClusters for full coverage`
+  );
+}
+```
+
+The `summary` and `detailed` formatters print this warning for you.
+
 ## When to Use
 
 Use `createDrain()` when:
 
-- Processing very large log files that don't fit in memory
-- Implementing streaming log analysis
-- Building real-time log monitoring systems
-- You need to process logs incrementally
-- You want direct access to internal clusters
+- Log lines arrive over time (streaming, tailing, polling)
+- You want to inspect templates between batches
+- You are feeding a very large file through in chunks
+- You need `totalLines` / `totalClusters` while processing
 
-Use `compress()` or `compressText()` when:
+Use [`compress()`](/docs/api/compress) or [`compressText()`](/docs/api/compress-text) when:
 
-- Processing complete log files that fit in memory
-- You want a simple, one-step compression
-- You don't need incremental updates
+- You already have the complete set of lines
+- You want a single call that also reports `processingTimeMs`
 
 ## See Also
 

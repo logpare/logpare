@@ -1,6 +1,11 @@
 # Sandpack Playground Implementation Summary
 
-This document summarizes the Sandpack playground components created for the logpare documentation site.
+> **Historical document.** The file layout below (`docs/src/components/*`,
+> `docs/playground.mdx`) does not exist in the repository. The playground that actually
+> ships lives in `docs/app/playground/page.tsx`. Treat this as a design record, not as a
+> description of the current code.
+
+This document summarizes the Sandpack playground components originally designed for the logpare documentation site.
 
 ## Overview
 
