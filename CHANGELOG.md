@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - add Vercel analytics
 - add AI-agent safety guardrails and developer tooling
 - cover untested exports and make parsing accuracy measurable
+- serve every documentation page as Markdown
 
 ### Changed
 
@@ -70,6 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - correct pattern ordering and collapse adjacent wildcards
 - repair the unrunnable logpare-mcp binary
 - address CodeRabbit review on #23
+- address CodeRabbit review on #24
+
+### build
+
+- generate the llms files and ship agent docs in the npm package
 ## [0.0.5] - 2026-01-01
 
 ### Added
