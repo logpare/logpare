@@ -45,7 +45,7 @@
     "directory": "packages/mcp"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "logpare": "workspace:^",
     "zod": "^3.25.0"
   },
@@ -53,7 +53,7 @@
     "@types/node": "^22.10.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": "^22.0.0 || >=24.0.0"

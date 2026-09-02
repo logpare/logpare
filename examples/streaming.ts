@@ -67,8 +67,10 @@ const incomingLogs = [
 ];
 
 for (const line of incomingLogs) {
-  const cluster = realtimeDrain.add(line);
+  // addLogLine() returns the matched LogCluster, or null for a blank line.
+  const cluster = realtimeDrain.addLogLine(line);
+  if (!cluster) continue;
   console.log(`Line: "${line}"`);
-  console.log(`  → Template: "${cluster.template}"`);
-  console.log(`  → Occurrences: ${cluster.occurrences}\n`);
+  console.log(`  → Template: "${cluster.getPattern()}"`);
+  console.log(`  → Occurrences: ${cluster.count}\n`);
 }

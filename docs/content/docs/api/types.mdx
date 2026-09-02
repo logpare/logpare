@@ -65,9 +65,12 @@ interface Template {
 
 ### CompressionStats
 
-Statistics about the compression operation.
+Statistics about the compression operation. This is the inline type of
+`CompressionResult['stats']` — logpare does not export a `CompressionStats` name, so
+write `CompressionResult['stats']` when you need to refer to it.
 
 ```typescript
+// Shape of CompressionResult['stats']
 interface CompressionStats {
   inputLines: number;
   uniqueTemplates: number;
