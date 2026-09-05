@@ -388,7 +388,7 @@ LogPare automatically masks common variable types:
 |---------|-------|----------|
 | Too many templates | Threshold too high | Lower `simThreshold` (e.g., 0.3) |
 | Templates too generic | Threshold too low | Raise `simThreshold` (e.g., 0.5) |
-| Similar logs not grouped | Depth too shallow | Increase `depth` (e.g., 5-6) |
+| Similar logs not grouped | Depth too deep (a variable token sits inside the prefix the tree matches exactly) | Lower `depth` (e.g., 3) or mask the token with a custom pattern |
 | Too much memory usage | Too many clusters | Lower `maxClusters` |
 
 ### Recommended Settings by Log Type

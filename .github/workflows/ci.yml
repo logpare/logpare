@@ -56,9 +56,50 @@ jobs:
       - name: Test MCP server
         run: pnpm --filter @logpare/mcp test
 
+  # The docs site is what people actually see. Typecheck cannot tell that a page
+  # crashes on a phone or that search throws, so this job builds the production site
+  # and drives it in a real browser at mobile and desktop widths, light and dark.
+  docs-e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm --filter logpare-docs exec playwright install --with-deps chromium
+
+      - name: Build docs site
+        run: pnpm --filter logpare-docs build
+
+      - name: Run browser smoke tests
+        run: pnpm --filter logpare-docs e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-report
+          path: docs/test-results/
+          retention-days: 7
+
   publish-check:
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, docs-e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:

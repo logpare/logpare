@@ -648,8 +648,8 @@ String representation in the requested format.
 const logs = [
   'ERROR Connection to 192.168.1.100 failed',
   'ERROR Connection to 192.168.1.101 failed',
-  'INFO Request abc123 completed',
-  'INFO Request xyz789 completed',
+  'INFO Request 10001 completed',
+  'INFO Request 10002 completed',
 ];
 
 const result = compress(logs);
@@ -1338,9 +1338,12 @@ interface Template {
 
 ### CompressionStats
 
-Statistics about the compression operation.
+Statistics about the compression operation. This is the inline type of
+`CompressionResult['stats']` — logpare does not export a `CompressionStats` name, so
+write `CompressionResult['stats']` when you need to refer to it.
 
 ```typescript
+// Shape of CompressionResult['stats']
 interface CompressionStats {
   inputLines: number;
   uniqueTemplates: number;

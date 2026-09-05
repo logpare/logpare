@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Sandpack } from '@codesandbox/sandpack-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useTheme } from 'next-themes';
+import { compressText } from 'logpare';
+import type { CompressionResult, OutputFormat } from 'logpare';
 
 const DEFAULT_LOGS = `ERROR Connection to 192.168.1.100 failed after 30s
 ERROR Connection to 192.168.1.101 failed after 25s
@@ -62,67 +62,118 @@ WARN [2024-01-15 10:25:15] Retry attempt 2/3 for request req-abc123
 WARN [2024-01-15 10:25:18] Retry attempt 1/3 for request req-xyz789`,
     description: 'Error-focused logs for debugging and analysis.',
   },
-};
+} as const;
 
+type DatasetKey = keyof typeof DATASETS;
+
+const FORMATS: readonly OutputFormat[] = ['summary', 'detailed', 'json'] as const;
+
+type Outcome =
+  | { ok: true; result: CompressionResult }
+  | { ok: false; message: string };
+
+/**
+ * Escapes a log body for embedding inside a backtick template literal in the
+ * generated snippet, so pasted logs containing backticks or `${` stay valid code.
+ */
+const escapeForTemplateLiteral = (value: string): string =>
+  value.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+
+/**
+ * Interactive log-compression playground.
+ *
+ * logpare is dependency-free and imports no Node builtins, so `compressText()` runs
+ * directly in the page and the result is prerendered on the server. There is no
+ * sandboxed Node runtime to boot, which is what previously made this page unusable
+ * on mobile Safari.
+ */
 export default function PlaygroundPage(): React.JSX.Element {
-  const [selectedDataset, setSelectedDataset] = useState<keyof typeof DATASETS>('basic');
-  const [options, setOptions] = useState({
-    depth: 4,
-    simThreshold: 0.4,
-    format: 'summary' as 'summary' | 'detailed' | 'json',
-  });
-  const [mounted, setMounted] = useState(false);
-  const { resolvedTheme } = useTheme();
+  const [selectedDataset, setSelectedDataset] = useState<DatasetKey>('basic');
+  const [logs, setLogs] = useState<string>(DATASETS.basic.logs);
+  const [depth, setDepth] = useState(4);
+  const [simThreshold, setSimThreshold] = useState(0.4);
+  const [format, setFormat] = useState<OutputFormat>('summary');
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
-  // Avoid hydration mismatch by only rendering Sandpack on client
+  // Return the copy button to its resting label a couple of seconds after an attempt.
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (copyState === 'idle') return;
+    const timer = setTimeout(() => setCopyState('idle'), 2000);
+    return () => clearTimeout(timer);
+  }, [copyState]);
 
   const dataset = DATASETS[selectedDataset];
+  const isEdited = logs !== dataset.logs;
 
-  const escapeForTemplateLiteral = (value: string): string =>
-    value
-      .replace(/\\/g, '\\\\')
-      .replace(/`/g, '\\`')
-      .replace(/\$\{/g, '\\${');
+  /** Switches the active sample and replaces the editor body with its log lines. */
+  const selectDataset = useCallback((key: DatasetKey): void => {
+    setSelectedDataset(key);
+    setLogs(DATASETS[key].logs);
+  }, []);
 
-  const appCode = `import { compressText } from 'logpare';
+  // logpare is a pure, dependency-free library, so compression runs inline in the
+  // browser. No sandboxed Node runtime — those are unreliable on mobile Safari.
+  const outcome = useMemo<Outcome>(() => {
+    if (logs.trim() === '') {
+      return { ok: false, message: 'Paste some log lines to see the compressed output.' };
+    }
+    try {
+      return {
+        ok: true,
+        result: compressText(logs, { format, drain: { depth, simThreshold } }),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : 'Compression failed.',
+      };
+    }
+  }, [logs, format, depth, simThreshold]);
 
-// ${dataset.name}
-const logs = \`${escapeForTemplateLiteral(dataset.logs)}\`;
+  const snippet = `import { compressText } from 'logpare';
+
+const logs = \`${escapeForTemplateLiteral(logs)}\`;
 
 // Drain algorithm options are nested under "drain";
 // "format" and "maxTemplates" sit at the top level.
-const options = {
-  format: '${options.format}',
+const result = compressText(logs, {
+  format: '${format}',
   drain: {
-    depth: ${options.depth},
-    simThreshold: ${options.simThreshold},
+    depth: ${depth},
+    simThreshold: ${simThreshold},
   },
-};
+});
 
-const result = compressText(logs, options);
-
-// compressionRatio and estimatedTokenReduction are ratios in 0..1, not percentages.
-console.log('📊 Compression Stats:');
-console.log(\`  • Input: \${result.stats.inputLines} lines\`);
-console.log(\`  • Templates: \${result.stats.uniqueTemplates}\`);
-console.log(\`  • Compression: \${(result.stats.compressionRatio * 100).toFixed(1)}% reduction\`);
-console.log(\`  • Token savings: ~\${(result.stats.estimatedTokenReduction * 100).toFixed(1)}%\`);
-console.log('');
 console.log(result.formatted);
-
-export default result;
 `;
 
+  /**
+   * Copies the generated snippet, reporting the outcome on the button itself.
+   * `navigator.clipboard` is undefined outside a secure context, and `writeText()`
+   * rejects when the document is not focused or the permission is denied, so both
+   * paths have to be handled or the failure surfaces as an unhandled rejection.
+   */
+  const copySnippet = useCallback((): void => {
+    const { clipboard } = navigator;
+    if (!clipboard) {
+      setCopyState('failed');
+      return;
+    }
+    void clipboard.writeText(snippet).then(
+      () => setCopyState('copied'),
+      () => setCopyState('failed')
+    );
+  }, [snippet]);
+
+  const stats = outcome.ok ? outcome.result.stats : undefined;
+
   return (
-    <div className="min-h-screen bg-fd-background">
-      <header className="border-b border-fd-border px-8 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-fd-background text-fd-foreground">
+      <header className="border-b border-fd-border px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <div>
-            <h1 className="font-mono font-bold text-2xl">Playground</h1>
-            <p className="text-fd-muted-foreground text-sm">
+            <h1 className="font-mono text-xl font-bold sm:text-2xl">Playground</h1>
+            <p className="text-sm text-fd-muted-foreground">
               Try logpare compression in your browser
             </p>
           </div>
@@ -135,83 +186,99 @@ export default result;
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
-          {/* Dataset Selection */}
-          <div className="lg:col-span-2">
-            <label className="block text-sm font-medium mb-2">Sample Dataset</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(Object.keys(DATASETS) as (keyof typeof DATASETS)[]).map((key) => (
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
+          {/* Dataset selection */}
+          <div>
+            {/*
+              A <label> needs a form control to name; these are buttons, so the group
+              gets its name from role="group" + aria-labelledby instead.
+            */}
+            <span id="dataset-group-label" className="mb-2 block text-sm font-medium">
+              Sample Dataset
+            </span>
+            <div
+              role="group"
+              aria-labelledby="dataset-group-label"
+              className="grid grid-cols-2 gap-2"
+            >
+              {(Object.keys(DATASETS) as DatasetKey[]).map((key) => (
                 <button
                   key={key}
-                  onClick={() => setSelectedDataset(key)}
-                  className={`p-3 text-left rounded-lg border transition-colors ${
+                  type="button"
+                  onClick={() => selectDataset(key)}
+                  aria-pressed={selectedDataset === key}
+                  className={`rounded-lg border p-3 text-left text-sm font-medium transition-colors ${
                     selectedDataset === key
                       ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-fd-border hover:border-fd-border-strong'
+                      : 'border-fd-border text-fd-foreground hover:bg-fd-accent'
                   }`}
                 >
-                  <div className="font-medium text-sm">{DATASETS[key].name}</div>
+                  {DATASETS[key].name}
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-sm text-fd-muted-foreground">
-              {dataset.description}
-            </p>
+            <p className="mt-2 text-sm text-fd-muted-foreground">{dataset.description}</p>
           </div>
 
           {/* Options */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Depth: {options.depth}
+              <label htmlFor="depth" className="mb-2 block text-sm font-medium">
+                Depth: {depth}
               </label>
               <input
+                id="depth"
                 type="range"
                 min="2"
                 max="8"
-                value={options.depth}
-                onChange={(e) =>
-                  setOptions({ ...options, depth: parseInt(e.target.value, 10) })
-                }
-                className="w-full"
+                value={depth}
+                onChange={(e) => setDepth(parseInt(e.target.value, 10))}
+                className="h-2 w-full cursor-pointer accent-primary"
               />
-              <p className="text-xs text-fd-muted-foreground mt-1">
+              <p className="mt-1 text-xs text-fd-muted-foreground">
                 Parse tree depth (higher = more specific templates)
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Similarity: {options.simThreshold}
+              <label htmlFor="similarity" className="mb-2 block text-sm font-medium">
+                Similarity: {simThreshold.toFixed(1)}
               </label>
               <input
+                id="similarity"
                 type="range"
                 min="0.1"
                 max="0.9"
                 step="0.1"
-                value={options.simThreshold}
-                onChange={(e) =>
-                  setOptions({ ...options, simThreshold: parseFloat(e.target.value) })
-                }
-                className="w-full"
+                value={simThreshold}
+                onChange={(e) => setSimThreshold(parseFloat(e.target.value))}
+                className="h-2 w-full cursor-pointer accent-primary"
               />
-              <p className="text-xs text-fd-muted-foreground mt-1">
+              <p className="mt-1 text-xs text-fd-muted-foreground">
                 Matching threshold (lower = more grouping)
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Output Format</label>
-              <div className="flex gap-2">
-                {(['summary', 'detailed', 'json'] as const).map((fmt) => (
+              <span id="format-group-label" className="mb-2 block text-sm font-medium">
+                Output Format
+              </span>
+              <div
+                role="group"
+                aria-labelledby="format-group-label"
+                className="flex flex-wrap gap-2"
+              >
+                {FORMATS.map((fmt) => (
                   <button
                     key={fmt}
-                    onClick={() => setOptions({ ...options, format: fmt })}
-                    className={`px-3 py-1.5 text-sm rounded border transition-colors ${
-                      options.format === fmt
-                        ? 'border-primary bg-primary text-white'
-                        : 'border-fd-border hover:border-fd-border-strong'
+                    type="button"
+                    onClick={() => setFormat(fmt)}
+                    aria-pressed={format === fmt}
+                    className={`rounded border px-3 py-1.5 text-sm transition-colors ${
+                      format === fmt
+                        ? 'border-primary bg-primary text-fd-primary-foreground'
+                        : 'border-fd-border text-fd-foreground hover:bg-fd-accent'
                     }`}
                   >
                     {fmt}
@@ -222,53 +289,86 @@ export default result;
           </div>
         </div>
 
-        {/* Sandpack Editor */}
-        <div className="rounded-lg overflow-hidden border border-fd-border">
-          {mounted ? (
-            <Sandpack
-              key={selectedDataset}
-              template="node"
-              theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
-              files={{
-                '/index.js': {
-                  code: appCode,
-                  active: true,
-                },
-                '/package.json': {
-                  code: JSON.stringify(
-                    {
-                      main: 'index.js',
-                      scripts: {
-                        start: 'node index.js',
-                      },
-                      dependencies: {
-                        logpare: '^0.0.5',
-                      },
-                    },
-                    null,
-                    2
-                  ),
-                  hidden: true,
-                },
-              }}
-              options={{
-                showNavigator: false,
-                showTabs: false,
-                showLineNumbers: true,
-                editorHeight: 500,
-                editorWidthPercentage: 55,
-              }}
-              customSetup={{
-                dependencies: {
-                  logpare: '^0.0.5',
-                },
-              }}
-            />
-          ) : (
-            <div className="h-[500px] flex items-center justify-center bg-fd-muted">
-              <span className="text-fd-muted-foreground">Loading editor...</span>
+        {/* Input / output */}
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:mt-8 lg:grid-cols-2 lg:gap-8">
+          <div className="flex flex-col">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <label htmlFor="logs" className="text-sm font-medium">
+                Your logs
+              </label>
+              {isEdited && (
+                <button
+                  type="button"
+                  onClick={() => setLogs(dataset.logs)}
+                  className="text-xs text-fd-muted-foreground hover:text-fd-foreground"
+                >
+                  Reset to sample
+                </button>
+              )}
             </div>
-          )}
+            <textarea
+              id="logs"
+              value={logs}
+              onChange={(e) => setLogs(e.target.value)}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              wrap="off"
+              /* 16px on small screens keeps iOS Safari from zooming on focus. */
+              className="h-64 w-full resize-y overflow-auto whitespace-pre rounded-lg border border-fd-border bg-fd-card p-3 font-mono text-base text-fd-card-foreground outline-none focus:border-primary sm:h-80 sm:text-sm"
+            />
+            <p className="mt-2 text-xs text-fd-muted-foreground">
+              Paste your own logs — everything runs locally in your browser.
+            </p>
+          </div>
+
+          <div className="flex min-w-0 flex-col">
+            <span className="mb-2 block text-sm font-medium">Result</span>
+            {outcome.ok ? (
+              <>
+                <dl className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <Stat label="Input" value={`${stats?.inputLines ?? 0} lines`} />
+                  <Stat label="Templates" value={`${stats?.uniqueTemplates ?? 0}`} />
+                  <Stat
+                    label="Compression"
+                    value={`${((stats?.compressionRatio ?? 0) * 100).toFixed(1)}%`}
+                  />
+                  <Stat
+                    label="Token savings"
+                    value={`~${((stats?.estimatedTokenReduction ?? 0) * 100).toFixed(1)}%`}
+                  />
+                </dl>
+                <pre className="h-64 overflow-auto rounded-lg border border-fd-border bg-fd-card p-3 font-mono text-xs leading-relaxed text-fd-card-foreground sm:h-80">
+                  {outcome.result.formatted}
+                </pre>
+              </>
+            ) : (
+              <pre
+                className={`h-64 overflow-auto rounded-lg border border-fd-border bg-fd-card p-3 font-mono text-xs sm:h-80 ${
+                  logs.trim() === '' ? 'text-fd-muted-foreground' : 'text-red-600 dark:text-red-400'
+                }`}
+              >
+                {outcome.message}
+              </pre>
+            )}
+          </div>
+        </div>
+
+        {/* Equivalent code */}
+        <div className="mt-6 lg:mt-8">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-sm font-medium">Equivalent code</span>
+            <button
+              type="button"
+              onClick={copySnippet}
+              className="rounded border border-fd-border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-foreground"
+            >
+              {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy'}
+            </button>
+          </div>
+          <pre className="max-h-80 overflow-auto rounded-lg border border-fd-border bg-fd-card p-3 font-mono text-xs leading-relaxed text-fd-card-foreground">
+            {snippet}
+          </pre>
         </div>
 
         <div className="mt-8 text-center text-sm text-fd-muted-foreground">
@@ -285,6 +385,16 @@ export default result;
           </p>
         </div>
       </main>
+    </div>
+  );
+}
+
+/** One labelled figure from the compression stats, sized to sit in a row of four. */
+function Stat({ label, value }: { label: string; value: string }): React.JSX.Element {
+  return (
+    <div className="min-w-0 rounded-lg border border-fd-border bg-fd-card px-3 py-2">
+      <dt className="truncate text-xs text-fd-muted-foreground">{label}</dt>
+      <dd className="truncate font-mono text-sm font-medium text-fd-card-foreground">{value}</dd>
     </div>
   );
 }
