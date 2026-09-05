@@ -2,6 +2,11 @@ import type { MetadataRoute } from 'next';
 import { source } from '@/lib/source';
 import { SITE_URL } from './robots';
 
+/**
+ * Serves `/sitemap.xml`, built from the docs source so new pages are listed without a
+ * hand-kept list. The end-to-end suite also walks this file, so a page that ships
+ * without appearing here is a page nothing tests.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages = source.getPages().map((page) => ({
     url: `${SITE_URL}${page.url}`,

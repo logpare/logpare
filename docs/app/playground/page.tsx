@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { compressText } from 'logpare';
 import type { CompressionResult, OutputFormat } from 'logpare';
@@ -72,20 +72,40 @@ type Outcome =
   | { ok: true; result: CompressionResult }
   | { ok: false; message: string };
 
+/**
+ * Escapes a log body for embedding inside a backtick template literal in the
+ * generated snippet, so pasted logs containing backticks or `${` stay valid code.
+ */
 const escapeForTemplateLiteral = (value: string): string =>
   value.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
 
+/**
+ * Interactive log-compression playground.
+ *
+ * logpare is dependency-free and imports no Node builtins, so `compressText()` runs
+ * directly in the page and the result is prerendered on the server. There is no
+ * sandboxed Node runtime to boot, which is what previously made this page unusable
+ * on mobile Safari.
+ */
 export default function PlaygroundPage(): React.JSX.Element {
   const [selectedDataset, setSelectedDataset] = useState<DatasetKey>('basic');
   const [logs, setLogs] = useState<string>(DATASETS.basic.logs);
   const [depth, setDepth] = useState(4);
   const [simThreshold, setSimThreshold] = useState(0.4);
   const [format, setFormat] = useState<OutputFormat>('summary');
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+  // Return the copy button to its resting label a couple of seconds after an attempt.
+  useEffect(() => {
+    if (copyState === 'idle') return;
+    const timer = setTimeout(() => setCopyState('idle'), 2000);
+    return () => clearTimeout(timer);
+  }, [copyState]);
 
   const dataset = DATASETS[selectedDataset];
   const isEdited = logs !== dataset.logs;
 
+  /** Switches the active sample and replaces the editor body with its log lines. */
   const selectDataset = useCallback((key: DatasetKey): void => {
     setSelectedDataset(key);
     setLogs(DATASETS[key].logs);
@@ -127,11 +147,22 @@ const result = compressText(logs, {
 console.log(result.formatted);
 `;
 
+  /**
+   * Copies the generated snippet, reporting the outcome on the button itself.
+   * `navigator.clipboard` is undefined outside a secure context, and `writeText()`
+   * rejects when the document is not focused or the permission is denied, so both
+   * paths have to be handled or the failure surfaces as an unhandled rejection.
+   */
   const copySnippet = useCallback((): void => {
-    void navigator.clipboard?.writeText(snippet).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    const { clipboard } = navigator;
+    if (!clipboard) {
+      setCopyState('failed');
+      return;
+    }
+    void clipboard.writeText(snippet).then(
+      () => setCopyState('copied'),
+      () => setCopyState('failed')
+    );
   }, [snippet]);
 
   const stats = outcome.ok ? outcome.result.stats : undefined;
@@ -159,8 +190,18 @@ console.log(result.formatted);
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
           {/* Dataset selection */}
           <div>
-            <label className="mb-2 block text-sm font-medium">Sample Dataset</label>
-            <div className="grid grid-cols-2 gap-2">
+            {/*
+              A <label> needs a form control to name; these are buttons, so the group
+              gets its name from role="group" + aria-labelledby instead.
+            */}
+            <span id="dataset-group-label" className="mb-2 block text-sm font-medium">
+              Sample Dataset
+            </span>
+            <div
+              role="group"
+              aria-labelledby="dataset-group-label"
+              className="grid grid-cols-2 gap-2"
+            >
               {(Object.keys(DATASETS) as DatasetKey[]).map((key) => (
                 <button
                   key={key}
@@ -220,8 +261,14 @@ console.log(result.formatted);
             </div>
 
             <div>
-              <span className="mb-2 block text-sm font-medium">Output Format</span>
-              <div className="flex flex-wrap gap-2">
+              <span id="format-group-label" className="mb-2 block text-sm font-medium">
+                Output Format
+              </span>
+              <div
+                role="group"
+                aria-labelledby="format-group-label"
+                className="flex flex-wrap gap-2"
+              >
                 {FORMATS.map((fmt) => (
                   <button
                     key={fmt}
@@ -316,7 +363,7 @@ console.log(result.formatted);
               onClick={copySnippet}
               className="rounded border border-fd-border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-foreground"
             >
-              {copied ? 'Copied' : 'Copy'}
+              {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy'}
             </button>
           </div>
           <pre className="max-h-80 overflow-auto rounded-lg border border-fd-border bg-fd-card p-3 font-mono text-xs leading-relaxed text-fd-card-foreground">
@@ -342,6 +389,7 @@ console.log(result.formatted);
   );
 }
 
+/** One labelled figure from the compression stats, sized to sit in a row of four. */
 function Stat({ label, value }: { label: string; value: string }): React.JSX.Element {
   return (
     <div className="min-w-0 rounded-lg border border-fd-border bg-fd-card px-3 py-2">

@@ -9,6 +9,7 @@ export const metadata: Metadata = {
     'Try logpare log compression in your browser. Paste logs, tune the Drain parameters, and see the compressed templates instantly.',
 };
 
+/** Wraps the playground in the marketing-site chrome (nav bar, theme provider). */
 export default function Layout({ children }: { children: ReactNode }): React.JSX.Element {
   return <HomeLayout {...baseOptions}>{children}</HomeLayout>;
 }

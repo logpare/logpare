@@ -20,10 +20,12 @@ function watch(page: Page): { errors: string[] } {
   return { errors };
 }
 
+/** Pixels the document scrolls past the viewport; anything above 0 is a layout bug. */
 async function horizontalOverflow(page: Page): Promise<number> {
   return page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 }
 
+/** Every path the site publishes, read from sitemap.xml so the suite needs no page list. */
 async function sitemapPaths(page: Page): Promise<string[]> {
   const response = await page.request.get('/sitemap.xml');
   expect(response.status(), 'sitemap.xml should be served').toBe(200);
@@ -89,6 +91,10 @@ test('playground compresses in the browser', async ({ page }) => {
   await page.getByRole('button', { name: 'summary', exact: true }).click();
   await page.locator('#logs').fill('ERROR disk full on node-1\nERROR disk full on node-2\nERROR disk full on node-3');
   await expect(output).toContainText('[3x] ERROR disk full on node-<*>');
+
+  // Both button groups carry an accessible name; neither is a bare <div> of buttons.
+  await expect(page.getByRole('group', { name: 'Sample Dataset' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Output Format' })).toBeVisible();
 
   expect(errors).toEqual([]);
   expect(await horizontalOverflow(page)).toBe(0);
