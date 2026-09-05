@@ -72,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - repair the unrunnable logpare-mcp binary
 - address CodeRabbit review on #23
 - address CodeRabbit review on #24
+- make the playground readable and reliable on mobile
+- repair search, add browser smoke tests to CI, patch deps
+- address CodeRabbit review on #25
 
 ### build
 
